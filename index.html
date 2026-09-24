@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#f9f7f1" />
+    <title>Control de Feriados · Monte Carlo & Onsite</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-view="inicio">
+    <div class="shell">
+      <header class="sidebar">
+        <div class="brand">
+          <span class="roof-logo" aria-hidden="true"><svg viewBox="0 0 132 36" width="112" height="30" fill="none"><path d="M2 35V18L24 2L45 18V35M45 18L66 2L88 18V35M88 18L109 2L130 18V35" stroke="currentColor" stroke-width="1.35"/></svg></span>
+          <strong>MONTE CARLO</strong><small>CONTROL DE FERIADOS · ONSITE</small>
+        </div>
+        <nav id="sideNav" aria-label="Navegación principal">
+          <span class="nav-title">MENÚ PRINCIPAL</span>
+          <a href="#inicio">Inicio</a>
+          <a href="#resumen">Dashboard</a>
+          <a href="#calendario">Calendario</a>
+          <a href="#registro">Control General</a>
+          <a href="#equipo">Colaboradores</a>
+          <a href="#feriados">Feriados</a>
+          <a href="#matriz">Matriz Anual</a>
+          <a href="#pendientes">Pendientes</a>
+          <a href="#reportes">Reportes</a>
+          <a href="#configuracion" class="nav-settings">⚙ &nbsp; Configuración y diseño</a>
+        </nav>
+        <details class="menu-disclosure" id="menuDisclosure">
+          <summary id="menuToggle" aria-label="Abrir menú" aria-controls="menuPanel">☰</summary>
+          <nav id="menuPanel" aria-label="Menú completo">
+            <span class="nav-title">MENÚ PRINCIPAL</span>
+            <a href="#inicio">Inicio</a>
+            <a href="#resumen">Dashboard</a>
+            <a href="#calendario">Calendario</a>
+            <a href="#registro">Control General</a>
+            <a href="#matriz">Matriz Anual</a>
+            <a href="#pendientes">Pendientes</a>
+            <a href="#equipo">Colaboradores</a>
+            <a href="#feriados">Feriados</a>
+            <a href="#reportes">Reportes</a>
+            <a href="#configuracion" class="nav-settings">⚙ &nbsp; Configuración y diseño</a>
+          </nav>
+        </details>
+      </header>
+      <main>
+        <noscript><p class="script-notice">Este visor no ejecuta las funciones de la página. Para registrar o editar datos, abrila en Safari o desde GitHub Pages.</p></noscript>
+        <section id="inicio" class="home-hero">
+          <div class="hero-photo-slider" aria-hidden="true">
+            <img src="monte_carlo_pool_hero.jpg" alt="" class="hero-photo hero-first" />
+            <img src="monte_carlo_office_hero.jpg" alt="" class="hero-photo hero-second" />
+          </div>
+          <div class="hero-shade">
+            <span class="hero-kicker">MONTE CARLO · JACÓ BEACH ONSITE</span>
+            <h1>Control de<br />Feriados</h1>
+            <span class="hero-rule"></span>
+            <p>Organizá los feriados, colaboradores y días laborados en un solo lugar.</p>
+            <a class="hero-cta" href="#resumen">VER EL CONTROL <span aria-hidden="true">→</span></a>
+          </div>
+        </section>
+        <nav class="home-cards" aria-label="Accesos principales">
+          <a href="#resumen"><span class="home-icon">◫</span><strong>Dashboard</strong><small>Resumen del período.</small><span class="home-arrow">→</span></a>
+          <a href="#calendario"><span class="home-icon">▦</span><strong>Calendario</strong><small>Fechas y registros.</small><span class="home-arrow">→</span></a>
+          <a href="#registro"><span class="home-icon">▤</span><strong>Control General</strong><small>Consulta y editá días.</small><span class="home-arrow">→</span></a>
+          <a href="#matriz"><span class="home-icon">▦</span><strong>Matriz Anual</strong><small>Estados por feriado.</small><span class="home-arrow">→</span></a>
+          <a href="#pendientes"><span class="home-icon">◷</span><strong>Pendientes</strong><small>Revisión y pagos.</small><span class="home-arrow">→</span></a>
+          <a href="#equipo"><span class="home-icon">♙</span><strong>Colaboradores</strong><small>Lista por empresa.</small><span class="home-arrow">→</span></a>
+        </nav>
+        <section id="equipo" class="team-section">
+          <div class="section-heading">
+            <div>
+              <h2>Colaboradores</h2>
+              <p class="section-intro">
+                Seleccioná una empresa para ver su lista. Podés editar el nombre
+                o la empresa de cada persona.
+              </p>
+            </div>
+            <button class="primary" id="addEmployee">
+              + Agregar colaborador
+            </button>
+          </div>
+          <div
+            class="company-tabs"
+            role="group"
+            aria-label="Filtrar colaboradores"
+          >
+            <button type="button" data-team-filter="" class="active">
+              Todos</button
+            ><button type="button" data-team-filter="Condominio Monte Carlo">
+              Monte Carlo</button
+            ><button
+              type="button"
+              data-team-filter="Jacó Beach Onsite Management Services Ltda."
+            >
+              Jacó Beach Onsite
+            </button>
+          </div>
+          <div class="panel employee-panel" id="employees"></div>
+        </section>
+        <section id="resumen">
+          <div class="section-heading">
+            <div>
+              <h2>Resumen del período</h2>
+            </div>
+            <div class="section-actions"><label class="field compact"
+              >Mes <input id="month" type="month"
+            /></label><button class="primary" id="newEntry" type="button">+ Nuevo registro</button></div>
+          </div>
+          <div class="cards">
+            <article class="card">
+              <span>Pendiente</span><strong id="pending">0</strong
+              ><small>En el mes seleccionado</small>
+            </article>
+            <article class="card">
+              <span>Disfrutado</span><strong id="enjoyed">0</strong
+              ><small>En el mes seleccionado</small>
+            </article>
+            <article class="card accent">
+              <span>Trabajado – Pago pendiente</span
+              ><strong id="paymentPending">0</strong
+              ><small>En el mes seleccionado</small>
+            </article>
+            <article class="card">
+              <span>Trabajado – Pagado</span><strong id="paid">0</strong
+              ><small>En el mes seleccionado</small>
+            </article>
+          </div>
+        </section>
+        <section id="calendario">
+          <div class="section-heading"><div><h2>Calendario</h2><p class="section-intro">Feriados y registros del mes seleccionado.</p></div><div class="calendar-controls"><button type="button" class="secondary" id="previousMonth" aria-label="Mes anterior">‹</button><strong id="calendarTitle"></strong><button type="button" class="secondary" id="nextMonth" aria-label="Mes siguiente">›</button></div></div>
+          <div class="panel calendar-panel"><div class="calendar-grid" id="calendarGrid"></div></div>
+        </section>
+        <section id="registro">
+          <div class="section-heading">
+            <div>
+              <h2>Días registrados</h2>
+            </div>
+            <div class="section-actions"><span id="resultCount" class="count"></span><button class="primary" id="newEntryFromControl" type="button">+ Nuevo registro</button></div>
+          </div>
+          <div class="panel">
+            <div class="filters">
+              <label class="field search"
+                >Buscar colaborador
+                <input
+                  id="search"
+                  type="search"
+                  placeholder="Nombre del colaborador" /></label
+              ><label class="field"
+                >Empresa
+                <select id="companyFilter">
+                  <option value="">Todas</option>
+                  <option>Condominio Monte Carlo</option>
+                  <option>Jacó Beach Onsite Management Services Ltda.</option>
+                </select></label
+              ><label class="field"
+                >Tipo de día
+                <select id="typeFilter">
+                  <option value="">Todos</option>
+                  <option value="ordinario">Ordinario</option>
+                  <option value="feriado">Feriado</option>
+                </select></label
+              ><label class="field"
+                >Estado
+                <select id="trackingFilter">
+                  <option value="">Todos</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="disfrutado">Disfrutado</option>
+                  <option value="pago_pendiente">
+                    Trabajado – Pago pendiente
+                  </option>
+                  <option value="pagado">Trabajado – Pagado</option>
+                  <option value="no_aplica">No aplica</option>
+                </select></label
+              >
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>FECHA</th>
+                    <th>COLABORADOR</th>
+                    <th>EMPRESA</th>
+                    <th>TIPO</th>
+                    <th>ESTADO</th>
+                    <th>COMENTARIOS</th>
+                    <th>ACCIONES</th>
+                  </tr>
+                </thead>
+                <tbody id="rows"></tbody>
+              </table>
+            </div>
+            <p class="empty" id="empty">
+              Aún no hay registros para estos filtros. Agregá uno con «Nuevo
+              registro».
+            </p>
+          </div>
+        </section>
+        <section id="matriz">
+          <div class="section-heading"><div><h2>Matriz Anual</h2><p class="section-intro">Estados de cada colaborador por feriado.</p></div><label class="field compact">Año <input type="number" id="matrixYear" min="2020" max="2100" value="2026" /></label></div>
+          <div class="panel"><div class="table-wrap matrix-wrap"><table class="matrix-table"><thead id="matrixHead"></thead><tbody id="matrixBody"></tbody></table></div><p class="empty" id="matrixEmpty" hidden>No hay feriados ni registros para este año.</p></div>
+        </section>
+        <section id="pendientes">
+          <div class="section-heading"><div><h2>Pendientes</h2><p class="section-intro">Registros por revisar y pagos pendientes de cualquier mes.</p></div><span class="count" id="pendingCount"></span></div>
+          <div class="panel pending-list" id="pendingList"></div>
+        </section>
+        <section id="feriados">
+          <div class="section-heading">
+            <div>
+              <h2>Feriados por año</h2>
+              <p class="section-intro">Añadí, editá o eliminá las fechas de cada año.</p>
+            </div>
+            <div class="section-actions">
+              <label class="field compact">Año <input type="number" id="holidayYear" min="2020" max="2100" value="2026" /></label>
+              <button type="button" class="primary" id="addHoliday">+ Agregar feriado</button>
+            </div>
+          </div>
+          <div class="panel holidays" id="holidays"></div>
+        </section>
+        <section id="reportes"><div class="section-heading"><div><h2>Reportes</h2><p class="section-intro">Descargá los registros filtrados o un respaldo completo.</p></div></div><div class="panel utility-panel"><div><strong>Registros CSV</strong><p>Incluye el mes y los filtros de Control General. Se abre en Excel.</p><button type="button" class="primary" id="exportCsv">Descargar CSV</button></div><div><strong>Respaldo completo</strong><p>Incluye colaboradores, feriados y registros en formato JSON.</p><button type="button" class="secondary" id="backup">Descargar respaldo</button></div></div></section>
+        <section id="configuracion">
+          <div class="section-heading"><div><h2>Configuración y diseño</h2><p class="section-intro">Personalizá cómo se ve la página en este navegador.</p></div></div>
+          <div class="panel settings-panel">
+            <div class="settings-group">
+              <h3>Apariencia</h3>
+              <p>Los cambios se aplican de inmediato y se recuerdan en este dispositivo.</p>
+              <div class="settings-fields">
+                <label class="field">Tipografía
+                  <select id="fontChoice"><option value="clasica">Clásica · como la portada</option><option value="moderna">Moderna · letras sencillas</option></select>
+                </label>
+                <label class="field">Tamaño de texto
+                  <select id="textSize"><option value="normal">Normal</option><option value="grande">Grande</option></select>
+                </label>
+                <label class="field">Colores
+                  <select id="themeChoice"><option value="crema">Crema y verde oliva</option><option value="claro">Blanco y gris</option></select>
+                </label>
+              </div>
+              <div class="settings-preview"><span>VISTA PREVIA</span><strong>Resumen del período</strong><p>Así se verá el contenido al cambiar la tipografía y el tamaño.</p></div>
+              <button type="button" class="secondary" id="resetAppearance">Restablecer diseño original</button>
+              <p class="settings-status" id="settingsStatus" role="status" aria-live="polite"></p>
+            </div>
+            <div class="settings-group">
+              <h3>Datos y respaldo</h3>
+              <p>Los colaboradores y registros se guardan en este navegador. Descargá una copia para conservarlos.</p>
+              <button type="button" class="primary" id="configBackup">Descargar respaldo</button>
+              <p>El mes seleccionado en Dashboard también controla Calendario y Control General. Pendientes muestra todos los meses.</p>
+              <a class="button-link" href="#inicio">Volver al inicio</a>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <dialog id="employeeDialog">
+      <form id="employeeForm">
+        <div class="dialog-head">
+          <div>
+            <h2 id="employeeDialogTitle">Agregar colaborador</h2>
+          </div>
+          <button
+            type="button"
+            class="close"
+            id="closeEmployeeDialog"
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+        </div>
+        <div class="form-grid">
+          <label class="field full"
+            >Nombre completo
+            <input
+              name="name"
+              maxlength="120"
+              required
+              autocomplete="off"
+              placeholder="Nombre y apellidos" /></label
+          ><label class="field full"
+            >Empresa
+            <select name="company" required>
+              <option value="Condominio Monte Carlo">
+                Condominio Monte Carlo
+              </option>
+              <option value="Jacó Beach Onsite Management Services Ltda.">
+                Jacó Beach Onsite Management Services Ltda.
+              </option>
+            </select></label
+          >
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="secondary" id="cancelEmployeeDialog">
+            Cancelar</button
+          ><button class="primary" type="submit">Guardar colaborador</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="holidayDialog">
+      <form id="holidayForm">
+        <div class="dialog-head">
+          <h2 id="holidayDialogTitle">Agregar feriado</h2>
+          <button type="button" class="close" id="closeHolidayDialog" aria-label="Cerrar">×</button>
+        </div>
+        <div class="form-grid">
+          <label class="field full">Nombre del feriado <input name="name" maxlength="120" required placeholder="Ej.: Año Nuevo" /></label>
+          <label class="field full">Fecha <input name="date" type="date" required /></label>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="secondary" id="cancelHolidayDialog">Cancelar</button>
+          <button type="submit" class="primary">Guardar feriado</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="entryDialog">
+      <form id="entryForm">
+        <div class="dialog-head">
+          <div>
+            <h2 id="dialogTitle">Nuevo registro</h2>
+          </div>
+          <button
+            type="button"
+            class="close"
+            id="closeDialog"
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+        </div>
+        <div class="form-grid">
+          <label class="field"
+            >Colaborador
+            <select name="employeeId" required></select></label
+          ><label class="field"
+            >Fecha <input type="date" name="date" required /></label
+          ><label class="field"
+            >Tipo de día
+            <select name="type">
+              <option value="ordinario">Ordinario</option>
+              <option value="feriado">Feriado</option>
+            </select></label
+          ><label class="field"
+            >Estado
+            <select name="trackingState" required>
+              <option value="" disabled>Seleccioná un estado</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="disfrutado">Disfrutado</option>
+              <option value="pago_pendiente">Trabajado – Pago pendiente</option>
+              <option value="pagado">Trabajado – Pagado</option>
+              <option value="no_aplica">No aplica</option>
+            </select></label
+          >
+          <label class="field full"
+            >Comentarios (opcional)
+            <textarea
+              name="note"
+              rows="3"
+              maxlength="500"
+              placeholder="Ej.: fecha del día libre o una aclaración"
+            ></textarea>
+          </label>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="secondary" id="cancelDialog">
+            Cancelar</button
+          ><button class="primary" type="submit">Guardar registro</button>
+        </div>
+      </form>
+    </dialog>
+    <script src="app.js"></script>
+  </body>
+</html>
