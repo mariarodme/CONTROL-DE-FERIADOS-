@@ -243,6 +243,9 @@
               <h3>Datos y respaldo</h3>
               <p>Los colaboradores y registros se guardan en este navegador. Descargá una copia para conservarlos.</p>
               <button type="button" class="primary" id="configBackup">Descargar respaldo</button>
+              <button type="button" class="secondary" id="importBackup">Importar / combinar respaldo</button>
+              <input type="file" id="importBackupFile" accept="application/json,.json" hidden />
+              <p class="settings-status" id="importStatus" role="status" aria-live="polite"></p>
               <p>El mes seleccionado en Dashboard también controla Calendario y Control General. Pendientes muestra todos los meses.</p>
               <a class="button-link" href="#inicio">Volver al inicio</a>
             </div>
