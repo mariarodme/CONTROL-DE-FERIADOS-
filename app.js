@@ -508,6 +508,74 @@ $("#resetAppearance").onclick = () => {
   $("#settingsStatus").textContent = "Diseño original restablecido.";
 };
 $("#configBackup").onclick = () => $("#backup").click();
+$("#importBackup").onclick = () => $("#importBackupFile").click();
+$("#importBackupFile").addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const status = $("#importStatus");
+  try {
+    const imported = JSON.parse(await file.text());
+    if (!Array.isArray(imported.employees) || !Array.isArray(imported.entries))
+      throw new Error("Formato inválido");
+
+    const employeeMap = new Map();
+    for (const incoming of imported.employees) {
+      const name = String(incoming.name || "").trim();
+      const company = String(incoming.company || "").trim();
+      if (!name || !companies.includes(company)) continue;
+      let existing = state.employees.find((e) =>
+        normalize(e.name) === normalize(name) && e.company === company
+      );
+      if (!existing) {
+        existing = { id: id(), name, company };
+        state.employees.push(existing);
+      }
+      employeeMap.set(String(incoming.id || `${company}|${name}`), existing.id);
+    }
+
+    if (Array.isArray(imported.holidays)) {
+      for (const holiday of imported.holidays) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(holiday.date || "") || !holiday.name) continue;
+        const existing = state.holidays.find((x) => x.date === holiday.date);
+        if (existing) existing.name = holiday.name;
+        else state.holidays.push({ id: id(), date: holiday.date, name: holiday.name });
+      }
+    }
+
+    let added = 0, updated = 0;
+    for (const incoming of imported.entries) {
+      const mappedEmployeeId = employeeMap.get(String(incoming.employeeId));
+      if (!mappedEmployeeId || !/^\d{4}-\d{2}-\d{2}$/.test(incoming.date || "")) continue;
+      const trackingState = Object.hasOwn(TRACKING, incoming.trackingState)
+        ? incoming.trackingState : "no_aplica";
+      const record = {
+        id: id(),
+        employeeId: mappedEmployeeId,
+        date: incoming.date,
+        type: incoming.type === "ordinario" ? "ordinario" : "feriado",
+        trackingState,
+        note: String(incoming.note || "").trim(),
+      };
+      const existingIndex = state.entries.findIndex((x) =>
+        x.employeeId === mappedEmployeeId && x.date === incoming.date
+      );
+      if (existingIndex >= 0) {
+        record.id = state.entries[existingIndex].id;
+        state.entries[existingIndex] = record;
+        updated++;
+      } else {
+        state.entries.push(record);
+        added++;
+      }
+    }
+    save();
+    status.textContent = `Importación lista: ${added} registros agregados y ${updated} actualizados.`;
+  } catch (error) {
+    status.textContent = "No se pudo importar el archivo. Verificá que sea un respaldo JSON válido.";
+  } finally {
+    event.target.value = "";
+  }
+});
 try {
   applyAppearance(JSON.parse(localStorage.getItem(APPEARANCE_KEY)) || defaultAppearance);
 } catch {
