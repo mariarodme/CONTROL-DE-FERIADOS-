@@ -210,7 +210,15 @@ function renderCalendar() {
     const date = `${month}-${String(day).padStart(2, "0")}`;
     const holiday = state.holidays.find((x) => x.date === date)?.name;
     const entries = state.entries.filter((x) => x.date === date);
-    cells.push(`<button type="button" class="calendar-day${holiday ? " is-holiday" : ""}" data-calendar-date="${date}" aria-label="${day} de ${escapeHtml($("#calendarTitle").textContent)}: ${entries.length} registros${holiday ? `, ${escapeHtml(holiday)}` : ""}"><span class="day-number">${day}</span>${holiday ? `<small class="day-holiday">${escapeHtml(holiday)}</small>` : ""}${entries.length ? `<span class="day-count">${entries.length} registro${entries.length === 1 ? "" : "s"}</span>` : ""}</button>`);
+    const visibleEntries = entries.slice(0, 3);
+    const entryList = visibleEntries.length
+      ? `<div class="day-entries">${visibleEntries.map((entry) => {
+          const person = employee(entry);
+          const label = `${person?.name || "Colaborador eliminado"} · ${TRACKING[entry.trackingState] || TRACKING.no_aplica}`;
+          return `<span class="day-entry tracking-${escapeHtml(entry.trackingState || "no_aplica")}" title="${escapeHtml(label)}"><span class="tracking-dot" aria-hidden="true"></span><span class="day-entry-text">${escapeHtml(label)}</span></span>`;
+        }).join("")}${entries.length > visibleEntries.length ? `<span class="day-more">+${entries.length - visibleEntries.length} más</span>` : ""}</div>`
+      : "";
+    cells.push(`<button type="button" class="calendar-day${holiday ? " is-holiday" : ""}" data-calendar-date="${date}" aria-label="${day} de ${escapeHtml($("#calendarTitle").textContent)}: ${entries.length} registros${holiday ? `, ${escapeHtml(holiday)}` : ""}"><span class="day-number">${day}</span>${holiday ? `<small class="day-holiday">${escapeHtml(holiday)}</small>` : ""}${entryList}${entries.length ? `<span class="day-count">${entries.length} registro${entries.length === 1 ? "" : "s"}</span>` : ""}</button>`);
   }
   $("#calendarGrid").innerHTML = cells.join("");
 }
@@ -459,6 +467,14 @@ document.addEventListener("click", (event) => {
   const view = link.getAttribute("href").slice(1);
   if (!views.has(view)) return;
   event.preventDefault();
+  const summaryState = link.dataset.summaryState;
+  if (summaryState && Object.hasOwn(TRACKING, summaryState)) {
+    $("#trackingFilter").value = summaryState;
+    $("#search").value = "";
+    $("#companyFilter").value = "";
+    $("#typeFilter").value = "";
+    render();
+  }
   if (location.hash !== `#${view}`) history.pushState(null, "", `#${view}`);
   showView(view);
 });
