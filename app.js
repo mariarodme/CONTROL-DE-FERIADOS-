@@ -106,6 +106,7 @@ function save() {
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
     render();
+    window.jornadasCloud?.changed();
   } catch {
     alert(
       "No se pudo guardar. Descargá un respaldo y liberá espacio antes de continuar.",
@@ -628,3 +629,14 @@ $("#month").value = new Date().toISOString().slice(0, 7);
 render();
 showView(location.hash.slice(1) || "inicio", false);
 document.documentElement.classList.add("js-ready");
+window.jornadasCloud?.start({
+  getData: () => state,
+  replaceData(data) {
+    if (!Array.isArray(data?.employees) || !Array.isArray(data?.entries) || !Array.isArray(data?.holidays))
+      throw new Error("Los datos en línea tienen un formato inválido.");
+    state = data;
+    localStorage.setItem(KEY, JSON.stringify(state));
+    render();
+  },
+  downloadBackup() { $("#backup").click(); },
+});
