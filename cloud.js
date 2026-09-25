@@ -20,6 +20,8 @@
     $("#cloudStatus").textContent = text;
     $("#cloudIndicator").textContent = mode === "online" ? "✓ Guardado en línea" : mode === "saving" ? "Guardando…" : mode === "error" ? "⚠ Guardado pendiente" : "Datos en este dispositivo";
     $("#cloudIndicator").dataset.status = mode;
+    $("#syncSummary").textContent = mode === "online" ? "✓ Guardado en línea · Ver configuración" : mode === "saving" ? "Guardando en línea…" : mode === "error" ? "⚠ No se guardó en línea · Ver configuración" : "Datos guardados solo en este dispositivo · Ver configuración";
+    $("#syncSummary").dataset.status = mode;
   }
   function actions({upload = false, open = false, retry = false} = {}) {
     $("#cloudActions").hidden = !session;
