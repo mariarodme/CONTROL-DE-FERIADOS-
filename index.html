@@ -14,6 +14,7 @@
           <span class="roof-logo" aria-hidden="true"><svg viewBox="0 0 132 36" width="112" height="30" fill="none"><path d="M2 35V18L24 2L45 18V35M45 18L66 2L88 18V35M88 18L109 2L130 18V35" stroke="currentColor" stroke-width="1.35"/></svg></span>
           <strong>MONTE CARLO</strong><small>CONTROL DE FERIADOS · ONSITE</small>
         </div>
+        <a class="cloud-indicator" href="#configuracion" id="cloudIndicator">Datos guardados en este dispositivo</a>
         <nav id="sideNav" aria-label="Navegación principal">
           <span class="nav-title">MENÚ PRINCIPAL</span>
           <a href="#inicio">Inicio</a>
@@ -219,8 +220,25 @@
         </section>
         <section id="reportes"><div class="section-heading"><div><h2>Reportes</h2><p class="section-intro">Descargá los registros filtrados o un respaldo completo.</p></div></div><div class="panel utility-panel"><div><strong>Registros CSV</strong><p>Incluye el mes y los filtros de Control General. Se abre en Excel.</p><button type="button" class="primary" id="exportCsv">Descargar CSV</button></div><div><strong>Respaldo completo</strong><p>Incluye colaboradores, feriados y registros en formato JSON.</p><button type="button" class="secondary" id="backup">Descargar respaldo</button></div></div></section>
         <section id="configuracion">
-          <div class="section-heading"><div><h2>Configuración y diseño</h2><p class="section-intro">Personalizá cómo se ve la página en este navegador.</p></div></div>
+          <div class="section-heading"><div><h2>Configuración y diseño</h2><p class="section-intro">Guardado y preferencias de la página.</p></div></div>
           <div class="panel settings-panel">
+            <div class="settings-group" id="cloudPanel">
+              <h3>Guardar en línea</h3>
+              <p>Usá la misma cuenta en el teléfono y la computadora para ver los mismos registros. Antes de trasladar datos del teléfono, descargá un respaldo allí.</p>
+              <p class="settings-status" id="cloudStatus" role="status" aria-live="polite">Comprobando conexión…</p>
+              <form id="cloudLoginForm" class="cloud-login" hidden>
+                <label class="field">Correo electrónico <input name="email" type="email" autocomplete="username" required /></label>
+                <label class="field">Contraseña <input name="password" type="password" autocomplete="current-password" required /></label>
+                <button type="submit" class="primary">Iniciar sesión</button>
+              </form>
+              <div class="cloud-actions" id="cloudActions" hidden>
+                <button type="button" class="primary" id="cloudUpload" hidden>Subir datos de este dispositivo</button>
+                <button type="button" class="secondary" id="cloudOpen" hidden>Abrir datos en línea</button>
+                <button type="button" class="secondary" id="cloudRetry" hidden>Reintentar guardado</button>
+                <button type="button" class="secondary" id="cloudLogout">Cerrar sesión</button>
+              </div>
+              <p class="cloud-hint" id="cloudHint">Mientras no aparezca «Guardado en línea», los cambios se conservan solo en este dispositivo.</p>
+            </div>
             <div class="settings-group">
               <h3>Apariencia</h3>
               <p>Los cambios se aplican de inmediato y se recuerdan en este dispositivo.</p>
@@ -241,7 +259,7 @@
             </div>
             <div class="settings-group">
               <h3>Datos y respaldo</h3>
-              <p>Los colaboradores y registros se guardan en este navegador. Descargá una copia para conservarlos.</p>
+              <p>Descargá una copia de colaboradores, feriados y registros. También podés combinar un respaldo de otro dispositivo.</p>
               <button type="button" class="primary" id="configBackup">Descargar respaldo</button>
               <button type="button" class="secondary" id="importBackup">Importar / combinar respaldo</button>
               <input type="file" id="importBackupFile" accept="application/json,.json" hidden />
@@ -367,6 +385,8 @@
         </div>
       </form>
     </dialog>
+    <script src="cloud-config.js"></script>
+    <script src="cloud.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
