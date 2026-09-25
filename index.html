@@ -224,14 +224,10 @@
           <div class="section-heading"><div><h2>Configuración y diseño</h2><p class="section-intro">Guardado y preferencias de la página.</p></div></div>
           <div class="panel settings-panel">
             <div class="settings-group" id="cloudPanel">
-              <h3>Guardar en línea</h3>
-              <p>Usá la misma cuenta en el teléfono y la computadora para ver los mismos registros. Antes de trasladar datos del teléfono, descargá un respaldo allí.</p>
+              <h3>Guardar en línea con Google</h3>
+              <p>Usá la misma cuenta de Google en el teléfono y la computadora para ver los mismos registros. Antes de trasladar datos del teléfono, descargá un respaldo allí.</p>
               <p class="settings-status" id="cloudStatus" role="status" aria-live="polite">Comprobando conexión…</p>
-              <form id="cloudLoginForm" class="cloud-login" hidden>
-                <label class="field">Correo electrónico <input name="email" type="email" autocomplete="username" required /></label>
-                <label class="field">Contraseña <input name="password" type="password" autocomplete="current-password" required /></label>
-                <button type="submit" class="primary">Iniciar sesión</button>
-              </form>
+              <button type="button" class="primary" id="firebaseSignIn" hidden>Entrar con Google</button>
               <div class="cloud-actions" id="cloudActions" hidden>
                 <button type="button" class="primary" id="cloudUpload" hidden>Subir datos de este dispositivo</button>
                 <button type="button" class="secondary" id="cloudOpen" hidden>Abrir datos en línea</button>
@@ -386,7 +382,7 @@
         </div>
       </form>
     </dialog>
-    <script src="cloud-config.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="cloud.js"></script>
     <script src="app.js"></script>
   </body>
