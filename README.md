@@ -7,7 +7,7 @@ Aplicación administrativa en español para gestionar colaboradores y registrar 
 ## Abrir y publicar
 
 1. Abrí `index.html` para probarla en tu computadora.
-2. Subí **los cinco archivos** (`index.html`, `styles.css`, `app.js` y las dos imágenes `.jpg`) a la raíz de un repositorio de GitHub.
+2. Subí los archivos de la página (`index.html`, `styles.css`, `app.js`, `cloud.js`, `firebase-config.js` y las dos imágenes `.jpg`) a la raíz de un repositorio de GitHub. `database.rules.json` es para pegarlo en Firebase, no se publica como datos de empleados.
 3. En **Settings → Pages**, elegí **Deploy from a branch**, rama `main` y carpeta `/ (root)`. GitHub mostrará la dirección publicada.
 
 La página funciona sin instalación. Para sincronizar datos entre dispositivos necesitás configurar el guardado en línea descrito abajo.
@@ -31,10 +31,10 @@ GitHub Pages solo publica los archivos. Antes de configurar la nube, los datos s
 
 ### Activar guardado en línea
 
-1. Creá un proyecto en [Supabase](https://supabase.com/dashboard). En **SQL Editor**, ejecutá íntegramente [`supabase.sql`](supabase.sql): crea la tabla, permisos por cuenta y control de cambios simultáneos.
-2. En **Authentication → Users**, creá una cuenta con tu correo para la administración. Usá esa misma cuenta en teléfono y computadora. Las cuentas distintas tendrán datos separados.
-3. En **Project Settings → API Keys**, copiá **Project URL** y la **publishable key** (`sb_publishable_...`) en [`cloud-config.js`](cloud-config.js). No coloqués la **secret key** ni una clave `service_role` en archivos de GitHub.
-4. Publicá los archivos actualizados en GitHub Pages, manteniendo ambas imágenes `.jpg` como archivos aparte. En la página entrá a **Configuración y diseño → Guardar en línea** e iniciá sesión.
-5. **Primero en el teléfono donde tenés los registros:** descargá un respaldo y tocá **Subir datos de este dispositivo**. Verificá que diga **Guardado en línea**. Después abrí la misma dirección en la computadora, iniciá sesión con la misma cuenta y tocá **Abrir datos en línea**. Esa acción descarga un respaldo de lo que hubiese en la computadora antes de abrir la nube.
+1. Entrá a [Firebase Console](https://console.firebase.google.com/) con tu cuenta de Google y creá un proyecto en el plan Spark, sin Google Analytics si no lo necesitás. Registrá una **app web** para obtener `apiKey`, `authDomain`, `projectId` y `appId`.
+2. En **Build → Authentication → Sign-in method**, activá el proveedor **Google**. En **Authentication → Settings → Authorized domains**, agregá `mariarodme.github.io`.
+3. En **Build → Realtime Database**, creá una base. En **Rules**, reemplazá las reglas iniciales con el contenido de [`database.rules.json`](database.rules.json) y publicalas. Copiá la URL de esta base como `databaseURL`.
+4. Pegá los cinco datos de configuración de Firebase en [`firebase-config.js`](firebase-config.js). Son identificadores públicos de la aplicación web; **no coloqués contraseñas ni claves privadas**. Publicá los archivos actualizados en GitHub Pages, manteniendo las dos imágenes `.jpg` aparte.
+5. **Primero en el teléfono donde tenés los registros:** abrí la misma página y navegador donde los ingresaste, descargá un respaldo en Configuración, tocá **Entrar con Google** y después **Subir datos de este dispositivo**. Verificá **Guardado en línea**. En la computadora, entrá con **la misma cuenta de Google** y elegí **Abrir datos en línea**. Antes de abrirlos se descarga automáticamente un respaldo de lo que hubiese en la computadora.
 
-Cada cambio se conserva además localmente. Si no hay conexión o dos dispositivos cambian datos simultáneamente, la página lo advierte y ofrece descargar un respaldo para importar y combinar los registros; no sustituye los datos del otro dispositivo en silencio. Con la sesión iniciada, revisa cambios de otro dispositivo al volver a la página y cada 30 segundos mientras está visible. Nunca compartas tu contraseña en GitHub ni en los archivos de la página.
+Cada cambio se conserva además localmente. Si no hay conexión o dos dispositivos cambian datos simultáneamente, la página lo advierte y ofrece descargar un respaldo para importar y combinar los registros; no sustituye los datos del otro dispositivo en silencio. Con la sesión iniciada, los cambios llegan en tiempo real. Nunca compartas tu contraseña en GitHub ni en los archivos de la página.
