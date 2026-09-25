@@ -257,4 +257,7 @@ dialog::backdrop{background:#1d211d88}
 .cloud-login .field { min-width: min(100%, 210px); flex: 1; }
 .cloud-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1rem 0; }
 .cloud-hint { font-size: .9rem; }
+.sync-summary { display: block; width: fit-content; margin: -.3rem 0 1.2rem; color: #735d32; font-size: .88rem; text-decoration: underline; text-underline-offset: 3px; }
+.sync-summary[data-status="online"] { color: #226b50; }
+.sync-summary[data-status="error"] { color: #a64232; }
 @media (max-width: 1200px) { .cloud-indicator { display: none; } }
