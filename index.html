@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
     <title>Control de Feriados · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260927-11" />
+    <link rel="stylesheet" href="styles.css?v=20260927-12" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -226,7 +226,35 @@
           </div>
           <div class="panel holidays" id="holidays"></div>
         </section>
-        <section id="reportes"><div class="section-heading"><div><h2>Reportes</h2><p class="section-intro">Descargá los registros filtrados o un respaldo completo.</p></div></div><div class="panel utility-panel"><div><strong>Registros CSV</strong><p>Incluye el mes y los filtros de Control General. Se abre en Excel.</p><button type="button" class="primary" id="exportCsv">Descargar CSV</button></div><div><strong>Respaldo completo</strong><p>Incluye colaboradores, feriados y registros en formato JSON.</p><button type="button" class="secondary" id="backup">Descargar respaldo</button></div></div></section>
+        <section id="reportes">
+          <div class="section-heading"><div><h2>Reportes</h2><p class="section-intro">Consultá y descargá los registros por período y empresa.</p></div></div>
+          <div class="report-tabs" role="tablist" aria-label="Tipo de reporte">
+            <button type="button" role="tab" aria-selected="true" data-report-kind="mensual">Reporte mensual</button>
+            <button type="button" role="tab" aria-selected="false" data-report-kind="anual">Reporte anual</button>
+            <button type="button" role="tab" aria-selected="false" data-report-kind="pendientes">Pendientes al cierre</button>
+          </div>
+          <div class="panel report-panel">
+            <div class="report-topline">
+              <div><h3 id="reportTitle">Reporte mensual</h3><p id="reportSubtitle">Detalle de feriados y días laborados por mes.</p></div>
+              <div class="report-actions">
+                <button type="button" class="secondary" id="printReport">Imprimir / PDF</button>
+                <button type="button" class="primary" id="downloadReport">Exportar Excel (CSV)</button>
+              </div>
+            </div>
+            <div class="report-filters">
+              <label class="field" id="reportMonthWrap">Mes<select id="reportMonth" aria-label="Mes del reporte"></select></label>
+              <label class="field" id="reportYearWrap">Año<select id="reportYear" aria-label="Año del reporte"></select></label>
+              <label class="field" id="reportCutoffWrap" hidden>Fecha de cierre<input id="reportCutoff" type="date" /></label>
+              <label class="field">Empresa<select id="reportCompany" aria-label="Empresa del reporte"><option value="">Todas las empresas</option><option value="Condominio Monte Carlo">Monte Carlo</option><option value="Jacó Beach Onsite Management Services Ltda.">Jacó Beach Onsite</option></select></label>
+            </div>
+            <p class="report-period" id="reportPeriod"></p>
+            <div class="report-summary" id="reportSummary"></div>
+            <div class="table-wrap"><table class="report-table"><thead><tr><th>FECHA</th><th>FERIADO / DÍA</th><th>COLABORADOR</th><th>EMPRESA</th><th>ESTADO</th><th>COMENTARIOS</th></tr></thead><tbody id="reportRows"></tbody></table></div>
+            <p class="empty" id="reportEmpty" hidden>No hay registros para este reporte.</p>
+            <p class="report-footnote" id="reportFootnote"></p>
+          </div>
+          <div class="panel utility-panel report-utilities"><div><strong>Registros de Control General</strong><p>Descargá en CSV la tabla con los filtros que seleccionaste en Control General.</p><button type="button" class="secondary" id="exportCsv">Descargar CSV</button></div><div><strong>Respaldo completo</strong><p>Guardá colaboradores, feriados y registros en formato JSON.</p><button type="button" class="secondary" id="backup">Descargar respaldo</button></div></div>
+        </section>
         <section id="configuracion">
           <div class="section-heading"><div><h2>Configuración y diseño</h2><p class="section-intro">Guardado y preferencias de la página.</p></div></div>
           <div class="panel settings-panel">
@@ -437,6 +465,6 @@
     </dialog>
     <script src="firebase-config.js?v=20260927-3"></script>
     <script src="cloud.js?v=20260927-3"></script>
-    <script src="app.js?v=20260927-11"></script>
+    <script src="app.js?v=20260927-12"></script>
   </body>
 </html>
