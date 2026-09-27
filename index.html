@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
     <title>Control de Feriados · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260927-7" />
+    <link rel="stylesheet" href="styles.css?v=20260927-8" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -261,6 +261,34 @@
                   <select id="themeChoice"><option value="crema">Crema y verde oliva</option><option value="claro">Blanco y gris</option><option value="azul">Marfil y azul marino</option><option value="arena">Arena y dorado</option></select>
                 </label>
               </div>
+              <div class="font-controls" aria-label="Tamaño de letra por sección">
+                <h4>Tamaño de letra</h4>
+                <p>Ajustá cada parte de la página por separado.</p>
+                <div class="font-stepper" data-font-stepper="title">
+                  <div><strong>Títulos</strong><small>Encabezados principales</small></div>
+                  <div class="stepper-buttons">
+                    <button type="button" data-step="-1" aria-label="Disminuir tamaño de títulos">−</button>
+                    <output id="titlePx" aria-live="polite">42px</output>
+                    <button type="button" data-step="1" aria-label="Aumentar tamaño de títulos">+</button>
+                  </div>
+                </div>
+                <div class="font-stepper" data-font-stepper="subtitle">
+                  <div><strong>Subtítulos</strong><small>Secciones y tarjetas</small></div>
+                  <div class="stepper-buttons">
+                    <button type="button" data-step="-1" aria-label="Disminuir tamaño de subtítulos">−</button>
+                    <output id="subtitlePx" aria-live="polite">24px</output>
+                    <button type="button" data-step="1" aria-label="Aumentar tamaño de subtítulos">+</button>
+                  </div>
+                </div>
+                <div class="font-stepper" data-font-stepper="body">
+                  <div><strong>Texto general</strong><small>Descripciones, formularios y registros</small></div>
+                  <div class="stepper-buttons">
+                    <button type="button" data-step="-1" aria-label="Disminuir tamaño del texto general">−</button>
+                    <output id="bodyPx" aria-live="polite">16px</output>
+                    <button type="button" data-step="1" aria-label="Aumentar tamaño del texto general">+</button>
+                  </div>
+                </div>
+              </div>
               <div class="settings-preview"><span>VISTA PREVIA</span><strong>Resumen del período</strong><p>Así se verá el contenido al cambiar la tipografía, el tamaño y los colores.</p></div>
               <button type="button" class="secondary" id="resetAppearance">Restablecer diseño original</button>
               <p class="settings-status" id="settingsStatus" role="status" aria-live="polite"></p>
@@ -404,6 +432,6 @@
     </dialog>
     <script src="firebase-config.js?v=20260927-3"></script>
     <script src="cloud.js?v=20260927-3"></script>
-    <script src="app.js?v=20260927-7"></script>
+    <script src="app.js?v=20260927-8"></script>
   </body>
 </html>
