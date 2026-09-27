@@ -267,3 +267,20 @@ dialog::backdrop{background:#1d211d88}
 .share-panel p{margin:.5rem 0 1rem}
 .share-link{display:block;max-width:100%;margin-top:1rem}
 .share-link input{display:block;width:100%;max-width:100%;margin-top:.4rem;box-sizing:border-box}
+
+.calendar-detail-dialog{width:min(92vw,700px);max-height:min(85vh,850px);overflow:auto}
+.calendar-detail-dialog .dialog-head{align-items:flex-start}
+.calendar-detail-dialog .dialog-head h2{margin:.2rem 0 .3rem}
+.dialog-eyebrow{font-size:.7rem;font-weight:700;letter-spacing:.14em;color:#68735c}
+#calendarDayHoliday{margin:.2rem 0;color:#67705f}
+.calendar-detail-count{margin:0 0 1rem;color:#656960;font-size:.9rem}
+.calendar-detail-list{display:grid;gap:.65rem}
+.calendar-detail-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:.8rem;padding:1rem;border:1px solid #dedad0;border-radius:8px;background:#fffdf8}
+.calendar-detail-person{min-width:0;display:grid;gap:.25rem}
+.calendar-detail-person strong{overflow-wrap:anywhere}
+.calendar-detail-person small{color:#697066}
+.calendar-detail-note{grid-column:1/-1;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;color:#454e44;font-size:.9rem}
+.calendar-detail-edit{white-space:nowrap}
+.calendar-detail-empty{margin:.6rem 0;padding:1.2rem;border:1px dashed #d5d2c9;border-radius:8px;color:#697066}
+.calendar-detail-dialog .dialog-actions{margin-top:1.2rem}
+@media(max-width:620px){.calendar-detail-row{grid-template-columns:minmax(0,1fr) auto}.calendar-detail-row .tracking{grid-column:1/-1;grid-row:2}.calendar-detail-edit{grid-column:2;grid-row:1}.calendar-detail-note{grid-row:3}}
