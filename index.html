@@ -224,8 +224,8 @@
           <div class="section-heading"><div><h2>Configuración y diseño</h2><p class="section-intro">Guardado y preferencias de la página.</p></div></div>
           <div class="panel settings-panel">
             <div class="settings-group" id="cloudPanel">
-              <h3>Guardar en línea con Google</h3>
-              <p>Usá la misma cuenta de Google en el teléfono y la computadora para ver los mismos registros. Antes de trasladar datos del teléfono, descargá un respaldo allí.</p>
+              <h3>Datos en línea</h3>
+              <p>Entrá con tu cuenta de Google para sincronizar tus dispositivos. Si recibiste un enlace compartido, abrilo para consultar y editar el mismo control.</p>
               <p class="settings-status" id="cloudStatus" role="status" aria-live="polite">Comprobando conexión…</p>
               <button type="button" class="primary" id="firebaseSignIn" hidden>Entrar con Google</button>
               <div class="cloud-actions" id="cloudActions" hidden>
@@ -233,6 +233,15 @@
                 <button type="button" class="secondary" id="cloudOpen" hidden>Abrir datos en línea</button>
                 <button type="button" class="secondary" id="cloudRetry" hidden>Reintentar guardado</button>
                 <button type="button" class="secondary" id="cloudLogout">Cerrar sesión</button>
+              </div>
+              <div class="share-panel" id="sharePanel" hidden>
+                <h4>Compartir el control</h4>
+                <p>El enlace compartido permite ver y editar colaboradores, feriados y registros. Cualquier persona que tenga el enlace tendrá acceso.</p>
+                <button type="button" class="secondary" id="shareToggle">Crear enlace compartido</button>
+                <label class="field share-link" id="shareLinkWrap" hidden>Enlace para compartir
+                  <input id="shareLink" type="text" readonly aria-label="Enlace para compartir" />
+                </label>
+                <p>Para quitar el acceso, tocá «Dejar de compartir».</p>
               </div>
               <p class="cloud-hint" id="cloudHint">Mientras no aparezca «Guardado en línea», los cambios se conservan solo en este dispositivo.</p>
             </div>
@@ -382,8 +391,8 @@
         </div>
       </form>
     </dialog>
-    <script src="firebase-config.js?v=20260927-2"></script>
-    <script src="cloud.js"></script>
+    <script src="firebase-config.js?v=20260927-3"></script>
+    <script src="cloud.js?v=20260927-3"></script>
     <script src="app.js"></script>
   </body>
 </html>
