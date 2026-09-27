@@ -633,6 +633,13 @@ $("#controlMonth").addEventListener("change", () => {
   $("#month").value = chosen;
   render();
 });
+const currentYear = new Date().getFullYear();
+const yearOptions = Array.from({length: 81}, (_, i) => String(2100 - i))
+  .map((year) => `<option value="${year}">${year}</option>`).join("");
+for (const selector of ["#matrixYear", "#holidayYear"]) {
+  $(selector).innerHTML = yearOptions;
+  $(selector).value = String(Math.min(2100, Math.max(2020, currentYear)));
+}
 $("#matrixYear").addEventListener("change", renderMatrix);
 $("#matrixCompany").addEventListener("change", renderMatrix);
 $("#holidayYear").addEventListener("change", renderHolidays);
