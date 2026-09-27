@@ -261,3 +261,9 @@ dialog::backdrop{background:#1d211d88}
 .sync-summary[data-status="online"] { color: #226b50; }
 .sync-summary[data-status="error"] { color: #a64232; }
 @media (max-width: 1200px) { .cloud-indicator { display: none; } }
+
+.share-panel{margin:1.5rem 0 0;padding:1.25rem;border:1px solid #ddd8cf;border-radius:8px;background:#f9f7f1}
+.share-panel h4{margin:0 0 .5rem;font-size:1.1rem}
+.share-panel p{margin:.5rem 0 1rem}
+.share-link{display:block;max-width:100%;margin-top:1rem}
+.share-link input{display:block;width:100%;max-width:100%;margin-top:.4rem;box-sizing:border-box}
