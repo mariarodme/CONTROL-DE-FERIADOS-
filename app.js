@@ -360,11 +360,6 @@ function renderReports() {
     ? "Se muestran los registros fechados hasta el cierre que actualmente tienen estado Pendiente o Trabajado – Pago pendiente."
     : "Los estados reflejan la información actual de los registros.";
 }
-function reportCsvCell(value) {
-  const text = String(value ?? "");
-  const safe = /^[=+@\-\t\r]/.test(text) ? "'" + text : text;
-  return '"' + safe.replace(/"/g, '""') + '"';
-}
 function openEntry(x, selectedDate) {
   if (!state.employees.length) {
     alert("Primero agregá al menos un colaborador.");
@@ -806,7 +801,7 @@ try {
   applyAppearance(defaultAppearance);
 }
 function download(filename, data, type) {
-  const url = URL.createObjectURL(new Blob([data], { type })),
+  const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type })),
     a = document.createElement("a");
   a.href = url;
   a.download = filename;
@@ -876,9 +871,15 @@ $("#downloadReport").onclick = () => {
   const period = reportKind === "pendientes" ? $("#reportCutoff").value :
     $("#reportYear").value + (reportKind === "mensual" ? "-" + $("#reportMonth").value : "");
   const company = $("#reportCompany").value ? "-" + ($("#reportCompany").value === companies[0] ? "monte-carlo" : "onsite") : "";
-  download(`reporte-${reportKind}-${period}${company}.csv`,
-    "\ufeff" + [header, ...data].map((row) => row.map(reportCsvCell).join(";")).join("\r\n"),
-    "text/csv;charset=utf-8");
+  const workbook = window.makeReportWorkbook({
+    title: REPORT_LABELS[reportKind][0],
+    period: reportPeriodText(),
+    company: $("#reportCompany").selectedOptions[0]?.textContent || "Todas las empresas",
+    headings: header,
+    rows: data,
+  });
+  download(`reporte-${reportKind}-${period}${company}.xlsx`, workbook,
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 };
 $("#month").value = new Date().toISOString().slice(0, 7);
 render();
