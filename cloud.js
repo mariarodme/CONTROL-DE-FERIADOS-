@@ -4,6 +4,8 @@
   const config = window.JORNADAS_FIREBASE || {};
   const ready = ["apiKey", "authDomain", "databaseURL", "projectId", "appId"].every((key) => !!config[key]);
   const LINK_KEY = "jaco-jornadas-firebase-link";
+  const sharedUid = new URL(location.href).searchParams.get("compartir");
+  const sharedMode = !!sharedUid && /^[A-Za-z0-9_-]{20,128}$/.test(sharedUid);
   let adapter, sdk, auth, database, user, dataRef, unsubscribe;
   let remote = null, revision = 0, connected = false, dirty = false, saving = false, blocked = false, lastSynced = "";
 
@@ -21,17 +23,30 @@
     $("#syncSummary").dataset.status = mode;
   }
   function actions({upload = false, open = false, retry = false} = {}) {
-    $("#firebaseSignIn").hidden = !ready || !!user;
-    $("#cloudActions").hidden = !user;
+    $("#firebaseSignIn").hidden = !ready || !!user || sharedMode;
+    $("#cloudActions").hidden = !user && !sharedMode || sharedMode && !connected;
+    $("#cloudLogout").hidden = sharedMode || !user;
+    $("#sharePanel").hidden = !user || sharedMode || !connected;
+    if (user && !sharedMode && connected) {
+      const enabled = !!remote?.sharingEnabled;
+      $("#shareToggle").textContent = enabled ? "Dejar de compartir" : "Crear enlace compartido";
+      $("#shareLinkWrap").hidden = !enabled;
+      if (enabled) {
+        const link = new URL(location.href);
+        link.searchParams.set("compartir", user.uid);
+        link.hash = "inicio";
+        $("#shareLink").value = link.href;
+      }
+    }
     $("#cloudUpload").hidden = !upload;
     $("#cloudOpen").hidden = !open;
     $("#cloudRetry").hidden = !retry;
   }
   function remember() {
-    localStorage.setItem(LINK_KEY, JSON.stringify({userId: user.uid, fingerprint: fingerprint(adapter.getData())}));
+    localStorage.setItem(LINK_KEY, JSON.stringify({userId: sharedMode ? sharedUid : user.uid, fingerprint: fingerprint(adapter.getData())}));
   }
   function decode(raw) {
-    return raw ? {revision: raw.revision, payload: JSON.parse(raw.payloadText)} : null;
+    return raw ? {revision: raw.revision, payload: JSON.parse(raw.payloadText), sharingEnabled: raw.sharingEnabled === true} : null;
   }
   function activate(data) {
     if (!data || !Array.isArray(data.payload?.employees) || !Array.isArray(data.payload?.entries) || !Array.isArray(data.payload?.holidays))
@@ -44,11 +59,16 @@
     lastSynced = fingerprint(adapter.getData());
     remember();
     actions();
-    message(`Guardado en línea · ${user.email || "sesión iniciada"}`, "online");
+    message(`Guardado en línea · ${sharedMode ? "enlace compartido" : user.email || "sesión iniciada"}`, "online");
   }
   function receive(data) {
     remote = data;
     if (!data) {
+      if (sharedMode) {
+        actions();
+        message("Este enlace compartido no está activo. Pedile a la persona administradora un enlace nuevo.", "error");
+        return;
+      }
       if (connected) {
         connected = false;
         blocked = true;
@@ -68,6 +88,11 @@
       } else activate(data);
       return;
     }
+    if (sharedMode) {
+      if (fingerprint(adapter.getData()) !== fingerprint(data.payload) && adapter.getData().entries.length) adapter.downloadBackup();
+      activate(data);
+      return;
+    }
     const link = JSON.parse(localStorage.getItem(LINK_KEY) || "null");
     const localHash = fingerprint(adapter.getData());
     if (localHash === fingerprint(data.payload) ||
@@ -80,7 +105,7 @@
   async function write(snapshot, expected) {
     const result = await sdk.runTransaction(dataRef, (current) => {
       if ((current?.revision || 0) !== expected) return;
-      return {revision: expected + 1, payloadText: JSON.stringify(snapshot), updatedAt: Date.now()};
+      return {...current, revision: expected + 1, payloadText: JSON.stringify(snapshot), updatedAt: Date.now()};
     }, {applyLocally: false});
     if (!result.committed) throw new Error("Otro dispositivo guardó cambios antes que este");
     return decode(result.snapshot.val());
@@ -110,7 +135,7 @@
     saving = false;
   }
   function report(error) {
-    actions({retry: !!user && connected});
+    actions({retry: !!user && connected && !sharedMode});
     message(`No se pudo conectar: ${error.message}. Los registros permanecen en este dispositivo.`, "error");
   }
   async function signIn() {
@@ -150,15 +175,15 @@
           if (unsubscribe) { unsubscribe(); unsubscribe = null; }
           user = account;
           remote = null; revision = 0; connected = dirty = blocked = saving = false;
-          if (!account) {
+          if (!account && !sharedMode) {
             dataRef = null;
             actions();
             message("Entrá con Google para ver los registros en el teléfono y la computadora.");
             return;
           }
-          dataRef = dbModule.ref(database, `users/${account.uid}`);
+          dataRef = dbModule.ref(database, `users/${sharedMode ? sharedUid : account.uid}`);
           actions();
-          message("Consultando datos en línea…", "saving");
+          message(sharedMode ? "Abriendo enlace compartido…" : "Consultando datos en línea…", "saving");
           unsubscribe = dbModule.onValue(dataRef, (snapshot) => {
             try { receive(decode(snapshot.val())); } catch (error) { report(error); }
           }, report);
@@ -167,7 +192,7 @@
     },
     changed() {
       if (connected) { dirty = true; flush(); }
-      else if (ready) message("Cambio guardado solo en este dispositivo. Entrá con Google para poder sincronizarlo.");
+      else if (ready) message(sharedMode ? "El enlace compartido no está conectado. El cambio quedó solo en este dispositivo." : "Cambio guardado solo en este dispositivo. Entrá con Google para poder sincronizarlo.");
     },
   };
   $("#firebaseSignIn").addEventListener("click", signIn);
@@ -205,6 +230,28 @@
       if (dirty) await flush();
       else { actions(); message("Guardado en línea", "online"); }
     } catch (error) { report(error); }
+  });
+  $("#shareToggle").addEventListener("click", async () => {
+    if (!user || sharedMode || !connected || saving || blocked || dirty) {
+      message("Esperá a que aparezca «Guardado en línea» antes de cambiar el acceso.", "error");
+      return;
+    }
+    const enable = !remote?.sharingEnabled;
+    if (!enable && !confirm("¿Dejar de compartir? Las personas con el enlace dejarán de ver y editar los datos en línea.")) return;
+    saving = true;
+    try {
+      const result = await sdk.runTransaction(dataRef, (current) => {
+        if (!current || current.revision !== revision) return;
+        return {...current, revision: revision + 1, sharingEnabled: enable, updatedAt: Date.now()};
+      }, {applyLocally: false});
+      if (!result.committed) throw new Error("Los datos cambiaron en otro dispositivo; actualizá la página e intentá de nuevo");
+      remote = decode(result.snapshot.val());
+      revision = remote.revision;
+      lastSynced = fingerprint(adapter.getData());
+      actions();
+      message(enable ? "Guardado en línea · enlace compartido activo" : "Guardado en línea · enlace compartido desactivado", "online");
+    } catch (error) { report(error); }
+    finally { saving = false; if (dirty) flush(); }
   });
   $("#cloudLogout").addEventListener("click", async () => {
     if (dirty && !confirm("Hay cambios sin guardar en línea. Se descargará un respaldo antes de cerrar sesión.")) return;
