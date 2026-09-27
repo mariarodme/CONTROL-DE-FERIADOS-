@@ -134,6 +134,7 @@ function filters() {
         (!$("#companyFilter").value ||
           e?.company === $("#companyFilter").value) &&
         (!$("#typeFilter").value || x.type === $("#typeFilter").value) &&
+        (!$("#holidayFilter").value || x.date === $("#holidayFilter").value) &&
         (!$("#trackingFilter").value ||
           x.trackingState === $("#trackingFilter").value)
       );
@@ -147,10 +148,24 @@ function filters() {
         ),
     );
 }
+function renderHolidayFilter() {
+  const select = $("#holidayFilter");
+  const selected = select.value;
+  const month = $("#month").value;
+  const holidays = [...state.holidays].sort((a, b) => a.date.localeCompare(b.date));
+  const years = [...new Set(holidays.map((x) => x.date.slice(0, 4)))];
+  select.innerHTML = '<option value="">Todos los feriados</option>' +
+    years.map((year) => `<optgroup label="${escapeHtml(year)}">${holidays
+      .filter((x) => x.date.startsWith(year + "-"))
+      .map((x) => `<option value="${escapeHtml(x.date)}">${escapeHtml(displayDate(x.date))} · ${escapeHtml(x.name)}</option>`)
+      .join("")}</optgroup>`).join("");
+  select.value = selected && selected.startsWith(month) ? selected : "";
+}
 function render() {
   const month = $("#month").value,
     period = state.entries.filter((x) => !month || x.date.startsWith(month));
   $("#controlMonth").value = month;
+  renderHolidayFilter();
   for (const [elementId, value] of [
     ["pending", "pendiente"],
     ["enjoyed", "disfrutado"],
@@ -486,6 +501,11 @@ for (const s of [
   "#trackingFilter",
 ])
   $(s).addEventListener(s === "#search" ? "input" : "change", render);
+$("#holidayFilter").addEventListener("change", () => {
+  const date = $("#holidayFilter").value;
+  if (date) $("#month").value = date.slice(0, 7);
+  render();
+});
 $("#controlMonth").addEventListener("change", () => {
   const chosen = $("#controlMonth").value;
   if (!chosen) {
@@ -543,6 +563,7 @@ document.addEventListener("click", (event) => {
     $("#search").value = "";
     $("#companyFilter").value = "";
     $("#typeFilter").value = "";
+    $("#holidayFilter").value = "";
     render();
   }
   if (location.hash !== `#${view}`) history.pushState(null, "", `#${view}`);
