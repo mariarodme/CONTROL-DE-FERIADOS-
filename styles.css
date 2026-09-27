@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@400;500&display=swap');
 :root{font-family:'DM Sans',Arial,sans-serif;color:#282923;background:#f5f2ea}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -286,3 +286,62 @@ dialog::backdrop{background:#1d211d88}
 @media(max-width:620px){.calendar-detail-row{grid-template-columns:minmax(0,1fr) auto}.calendar-detail-row .tracking{grid-column:1/-1;grid-row:2}.calendar-detail-edit{grid-column:2;grid-row:1}.calendar-detail-note{grid-row:3}}
 
 .calendar-detail-dialog .dialog-head{position:sticky;top:0;z-index:2;background:#fbf9f4;padding-bottom:.75rem}
+
+body[data-font="editorial"] .brand strong,body[data-font="editorial"] .hero-shade h1,body[data-font="editorial"] .home-cards strong,body[data-font="editorial"] .section-heading h2,body[data-font="editorial"] .card strong,body[data-font="editorial"] .team-header h3,body[data-font="editorial"] .settings-group h3,body[data-font="editorial"] .settings-preview strong,body[data-font="editorial"] .dialog-head h2{font-family:'Cormorant Garamond',Georgia,serif}
+body[data-font="ejecutiva"]{font-family:'Montserrat',Arial,sans-serif}
+body[data-font="ejecutiva"] .brand strong,body[data-font="ejecutiva"] .hero-shade h1,body[data-font="ejecutiva"] .home-cards strong,body[data-font="ejecutiva"] .section-heading h2,body[data-font="ejecutiva"] .card strong,body[data-font="ejecutiva"] .team-header h3,body[data-font="ejecutiva"] .settings-group h3,body[data-font="ejecutiva"] .settings-preview strong,body[data-font="ejecutiva"] .dialog-head h2{font-family:'Montserrat',Arial,sans-serif}
+body[data-font="editorial"] .settings-preview strong{font-size:34px}
+body[data-font="editorial"] .section-heading h2{font-size:clamp(34px,4vw,51px)}
+
+body[data-text-size="pequeno"] .section-intro,body[data-text-size="pequeno"] .hero-shade p,
+body[data-text-size="pequeno"] .home-cards small,body[data-text-size="pequeno"] .card span,
+body[data-text-size="pequeno"] .card small,body[data-text-size="pequeno"] .panel,
+body[data-text-size="pequeno"] .settings-group>p,body[data-text-size="pequeno"] .settings-preview p{font-size:12px}
+body[data-text-size="pequeno"] .field,body[data-text-size="pequeno"] .field input,
+body[data-text-size="pequeno"] .field select,body[data-text-size="pequeno"] .field textarea,
+body[data-text-size="pequeno"] table,body[data-text-size="pequeno"] .person,
+body[data-text-size="pequeno"] .calendar-detail-person,
+body[data-text-size="pequeno"] .calendar-detail-note{font-size:11px}
+body[data-text-size="pequeno"] .settings-preview strong{font-size:25px}
+body[data-text-size="pequeno"] .section-heading h2{font-size:clamp(27px,3vw,40px)}
+body[data-text-size="grande"] .settings-preview strong{font-size:33px}
+body[data-text-size="grande"] .section-heading h2{font-size:clamp(32px,4vw,51px)}
+body[data-text-size="grande"] .calendar-detail-person,
+body[data-text-size="grande"] .calendar-detail-note{font-size:15px}
+body[data-text-size="muy-grande"] .section-intro,body[data-text-size="muy-grande"] .hero-shade p,
+body[data-text-size="muy-grande"] .home-cards small,body[data-text-size="muy-grande"] .card span,
+body[data-text-size="muy-grande"] .card small,body[data-text-size="muy-grande"] .panel,
+body[data-text-size="muy-grande"] .settings-group>p,body[data-text-size="muy-grande"] .settings-preview p{font-size:18px}
+body[data-text-size="muy-grande"] .field,body[data-text-size="muy-grande"] .field input,
+body[data-text-size="muy-grande"] .field select,body[data-text-size="muy-grande"] .field textarea,
+body[data-text-size="muy-grande"] table,body[data-text-size="muy-grande"] .person,
+body[data-text-size="muy-grande"] .calendar-detail-person,
+body[data-text-size="muy-grande"] .calendar-detail-note{font-size:17px}
+body[data-text-size="muy-grande"] .settings-preview strong{font-size:38px}
+body[data-text-size="muy-grande"] .section-heading h2{font-size:clamp(34px,4.5vw,56px)}
+
+body[data-theme="azul"]{background:#f2f5f6;color:#243540}
+body[data-theme="azul"] .sidebar,body[data-theme="azul"] #menuPanel{background:#fcfdfd}
+body[data-theme="azul"] .panel,body[data-theme="azul"] .card,
+body[data-theme="azul"] .home-cards a{background:#fff;border-color:#ccd9df}
+body[data-theme="azul"] .card.accent,body[data-theme="azul"] .settings-preview,
+body[data-theme="azul"] .share-panel{background:#e9f1f5}
+body[data-theme="azul"] .team-header,body[data-theme="azul"] thead th{background:#e9eff3}
+body[data-theme="azul"] .calendar-day.is-holiday{background:#e7f0f5}
+body[data-theme="azul"] .primary,body[data-theme="azul"] .button-link,
+body[data-theme="azul"] .hero-cta{background:#28556d}
+body[data-theme="azul"] .secondary{color:#28556d}
+body[data-theme="azul"] #sideNav a.active,body[data-theme="azul"] #menuPanel a.active{color:#28556d;border-color:#28556d}
+
+body[data-theme="arena"]{background:#f7f2e9;color:#302b25}
+body[data-theme="arena"] .sidebar,body[data-theme="arena"] #menuPanel{background:#fffaf3}
+body[data-theme="arena"] .panel,body[data-theme="arena"] .card,
+body[data-theme="arena"] .home-cards a{background:#fffdfa;border-color:#e2d3bc}
+body[data-theme="arena"] .card.accent,body[data-theme="arena"] .settings-preview,
+body[data-theme="arena"] .share-panel{background:#f3e8d6}
+body[data-theme="arena"] .team-header,body[data-theme="arena"] thead th{background:#f1e7d8}
+body[data-theme="arena"] .calendar-day.is-holiday{background:#f7ead6}
+body[data-theme="arena"] .primary,body[data-theme="arena"] .button-link,
+body[data-theme="arena"] .hero-cta{background:#765a37}
+body[data-theme="arena"] .secondary{color:#765a37}
+body[data-theme="arena"] #sideNav a.active,body[data-theme="arena"] #menuPanel a.active{color:#765a37;border-color:#765a37}
