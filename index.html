@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
     <title>Control de Feriados · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260927-5" />
+    <link rel="stylesheet" href="styles.css?v=20260927-6" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -142,6 +142,8 @@
           </div>
           <div class="panel">
             <div class="filters">
+              <label class="field">Mes
+                <input id="controlMonth" type="month" aria-label="Mes de Control General" /></label>
               <label class="field search"
                 >Buscar colaborador
                 <input
@@ -270,7 +272,7 @@
               <button type="button" class="secondary" id="importBackup">Importar / combinar respaldo</button>
               <input type="file" id="importBackupFile" accept="application/json,.json" hidden />
               <p class="settings-status" id="importStatus" role="status" aria-live="polite"></p>
-              <p>El mes seleccionado en Dashboard también controla Calendario y Control General. Pendientes muestra todos los meses.</p>
+              <p>El mes seleccionado en Dashboard o Control General también controla Calendario. Pendientes muestra todos los meses.</p>
               <a class="button-link" href="#inicio">Volver al inicio</a>
             </div>
           </div>
@@ -402,6 +404,6 @@
     </dialog>
     <script src="firebase-config.js?v=20260927-3"></script>
     <script src="cloud.js?v=20260927-3"></script>
-    <script src="app.js?v=20260927-5"></script>
+    <script src="app.js?v=20260927-6"></script>
   </body>
 </html>
