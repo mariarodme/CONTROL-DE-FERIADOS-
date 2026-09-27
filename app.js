@@ -551,17 +551,47 @@ document.addEventListener("click", (event) => {
 window.addEventListener("popstate", () => showView(location.hash.slice(1)));
 window.addEventListener("hashchange", () => showView(location.hash.slice(1)));
 const APPEARANCE_KEY = "jaco-jornadas-apariencia";
-const defaultAppearance = {font: "clasica", size: "normal", theme: "crema"};
+const sizePresets = {
+  pequeno: {titlePx: 32, subtitlePx: 20, bodyPx: 13},
+  normal: {titlePx: 42, subtitlePx: 24, bodyPx: 16},
+  grande: {titlePx: 48, subtitlePx: 28, bodyPx: 18},
+  "muy-grande": {titlePx: 54, subtitlePx: 32, bodyPx: 20},
+};
+const fontRanges = {
+  title: {min: 24, max: 64, step: 2},
+  subtitle: {min: 16, max: 42, step: 2},
+  body: {min: 12, max: 26, step: 1},
+};
+const defaultAppearance = {font: "clasica", size: "normal", theme: "crema", ...sizePresets.normal};
+function fontSize(value, range, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= range.min && n <= range.max
+    ? Math.round(n) : fallback;
+}
 function applyAppearance(preferences) {
   const font = ["clasica", "moderna", "editorial", "ejecutiva"].includes(preferences?.font) ? preferences.font : "clasica";
-  const size = ["pequeno", "normal", "grande", "muy-grande"].includes(preferences?.size) ? preferences.size : "normal";
+  const size = Object.hasOwn(sizePresets, preferences?.size) ? preferences.size : "normal";
   const theme = ["crema", "claro", "azul", "arena"].includes(preferences?.theme) ? preferences.theme : "crema";
   document.body.dataset.font = $("#fontChoice").value = font;
   document.body.dataset.textSize = $("#textSize").value = size;
   document.body.dataset.theme = $("#themeChoice").value = theme;
+  for (const kind of ["title", "subtitle", "body"]) {
+    const key = kind + "Px";
+    const px = fontSize(preferences?.[key], fontRanges[kind], sizePresets[size][key]);
+    document.body.style.setProperty("--" + kind + "-size", px + "px");
+    $("#" + key).value = px;
+    $("#" + key).textContent = px + "px";
+  }
 }
 function saveAppearance() {
-  const preferences = {font: $("#fontChoice").value, size: $("#textSize").value, theme: $("#themeChoice").value};
+  const preferences = {
+    font: $("#fontChoice").value,
+    size: $("#textSize").value,
+    theme: $("#themeChoice").value,
+    titlePx: Number($("#titlePx").value),
+    subtitlePx: Number($("#subtitlePx").value),
+    bodyPx: Number($("#bodyPx").value),
+  };
   applyAppearance(preferences);
   try {
     localStorage.setItem(APPEARANCE_KEY, JSON.stringify(preferences));
@@ -570,8 +600,28 @@ function saveAppearance() {
     $("#settingsStatus").textContent = "La apariencia se aplicó, pero no se pudo guardar en este navegador.";
   }
 }
-for (const selector of ["#fontChoice", "#textSize", "#themeChoice"])
+for (const selector of ["#fontChoice", "#themeChoice"])
   $(selector).addEventListener("change", saveAppearance);
+$("#textSize").addEventListener("change", () => {
+  applyAppearance({
+    font: $("#fontChoice").value,
+    theme: $("#themeChoice").value,
+    size: $("#textSize").value,
+    ...sizePresets[$("#textSize").value],
+  });
+  saveAppearance();
+});
+document.querySelectorAll("[data-font-stepper] button").forEach((button) => {
+  button.addEventListener("click", () => {
+    const kind = button.closest("[data-font-stepper]").dataset.fontStepper;
+    const output = $("#" + kind + "Px");
+    const range = fontRanges[kind];
+    const next = Math.min(range.max, Math.max(range.min, Number(output.value) + Number(button.dataset.step) * range.step));
+    if (next === Number(output.value)) return;
+    output.value = next;
+    saveAppearance();
+  });
+});
 $("#resetAppearance").onclick = () => {
   applyAppearance(defaultAppearance);
   saveAppearance();
