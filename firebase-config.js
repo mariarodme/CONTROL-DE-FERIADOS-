@@ -1,7 +1,7 @@
 // Datos públicos de la aplicación web de Firebase (Firebase Console → Configuración del proyecto).
 // No colocar aquí contraseñas, claves privadas ni credenciales de cuentas.
 window.JORNADAS_FIREBASE = {
-  apiKey: "AIzaSyDFN269mxDXlmfRJorVEN6psOrdH2xIE5Q",
+  apiKey: "AIzaSyDFN269mxDXlmfRJorvEN6psOrdH2xIE5Q",
   authDomain: "control-de-feriados.firebaseapp.com",
   databaseURL: "https://control-de-feriados-default-rtdb.firebaseio.com",
   projectId: "control-de-feriados",
