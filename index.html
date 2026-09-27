@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
     <title>Control de Feriados · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260927-17" />
+    <link rel="stylesheet" href="styles.css?v=20260927-18" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -204,7 +204,7 @@
           </div>
         </section>
         <section id="matriz">
-          <div class="section-heading"><div><h2>Matriz Anual</h2><p class="section-intro">Estados de cada colaborador por feriado.</p></div><div class="section-actions matrix-filters"><label class="field compact">Año <input type="number" id="matrixYear" min="2020" max="2100" value="2026" /></label><label class="field">Empresa <select id="matrixCompany" aria-label="Empresa de Matriz Anual"><option value="">Todas</option><option value="Condominio Monte Carlo">Monte Carlo</option><option value="Jacó Beach Onsite Management Services Ltda.">Jacó Beach Onsite</option></select></label></div></div>
+          <div class="section-heading"><div><h2>Matriz Anual</h2><p class="section-intro">Estados de cada colaborador por feriado.</p></div><div class="section-actions matrix-filters"><label class="field compact">Año <select id="matrixYear" class="year-select" aria-label="Año de la matriz anual"></select></label><label class="field">Empresa <select id="matrixCompany" aria-label="Empresa de Matriz Anual"><option value="">Todas</option><option value="Condominio Monte Carlo">Monte Carlo</option><option value="Jacó Beach Onsite Management Services Ltda.">Jacó Beach Onsite</option></select></label></div></div>
           <div class="panel"><div class="table-wrap matrix-wrap"><table class="matrix-table"><thead id="matrixHead"></thead><tbody id="matrixBody"></tbody></table></div><p class="empty" id="matrixEmpty" hidden>No hay feriados ni registros para este año.</p></div>
         </section>
         <section id="pendientes">
@@ -219,7 +219,7 @@
               <p class="holiday-summary" id="holidaySummary"></p>
             </div>
             <div class="section-actions">
-              <label class="field compact">Año <input type="number" id="holidayYear" min="2020" max="2100" value="2026" /></label>
+              <label class="field compact">Año <select id="holidayYear" class="year-select" aria-label="Año de los feriados"></select></label>
               <button type="button" class="primary" id="addHoliday">+ Agregar feriado</button>
             </div>
           </div>
@@ -465,7 +465,7 @@
     </dialog>
     <script src="firebase-config.js?v=20260927-3"></script>
     <script src="cloud.js?v=20260927-3"></script>
-    <script src="xlsx.js?v=20260927-17"></script>
-    <script src="app.js?v=20260927-17"></script>
+    <script src="xlsx.js?v=20260927-18"></script>
+    <script src="app.js?v=20260927-18"></script>
   </body>
 </html>
