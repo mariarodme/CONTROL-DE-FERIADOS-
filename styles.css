@@ -389,3 +389,7 @@ body[data-text-size] .font-stepper small{font-size:calc(var(--body-size) * .75)}
 /* Control General: filtros legibles en dos filas. */
 @media(min-width:1201px){#registro .filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
 #registro .filters .field select,#registro .filters .field input{width:100%}
+
+.matrix-filters{flex-wrap:wrap;gap:12px;align-items:flex-end}
+.matrix-filters select{min-width:180px}
+@media(max-width:620px){.matrix-filters{width:100%}.matrix-filters .field{flex:1;min-width:130px}.matrix-filters input,.matrix-filters select{width:100%;min-width:0}}
