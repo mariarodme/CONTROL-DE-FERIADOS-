@@ -284,6 +284,17 @@ function openEntry(x, selectedDate) {
   $("#entryDialog").showModal();
 }
 $("#calendarDayClose").onclick = () => $("#calendarDayDialog").close();
+function closeCalendarDayFromOutside(event) {
+  const dialog = $("#calendarDayDialog");
+  const rect = dialog.getBoundingClientRect();
+  if (event.clientX < rect.left || event.clientX > rect.right ||
+      event.clientY < rect.top || event.clientY > rect.bottom) {
+    event.preventDefault();
+    dialog.close();
+  }
+}
+$("#calendarDayDialog").addEventListener("click", closeCalendarDayFromOutside);
+$("#calendarDayDialog").addEventListener("contextmenu", closeCalendarDayFromOutside);
 $("#calendarDayAdd").onclick = () => {
   const date = $("#calendarDayDialog").dataset.date;
   returnToCalendarDate = date;
