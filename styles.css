@@ -284,3 +284,5 @@ dialog::backdrop{background:#1d211d88}
 .calendar-detail-empty{margin:.6rem 0;padding:1.2rem;border:1px dashed #d5d2c9;border-radius:8px;color:#697066}
 .calendar-detail-dialog .dialog-actions{margin-top:1.2rem}
 @media(max-width:620px){.calendar-detail-row{grid-template-columns:minmax(0,1fr) auto}.calendar-detail-row .tracking{grid-column:1/-1;grid-row:2}.calendar-detail-edit{grid-column:2;grid-row:1}.calendar-detail-note{grid-row:3}}
+
+.calendar-detail-dialog .dialog-head{position:sticky;top:0;z-index:2;background:#fbf9f4;padding-bottom:.75rem}
