@@ -516,3 +516,8 @@ body[data-text-size] .holiday-card{font-size:calc(var(--body-size) * .9)}
 body[data-text-size] .holiday-details h3{font-size:calc(var(--subtitle-size) * .9)}
 @media(max-width:800px){.holidays{grid-template-columns:1fr}}
 @media(max-width:480px){.holiday-card{padding:16px}.holiday-card-main{gap:12px}.holiday-date{width:66px;min-height:76px}.holiday-date strong{font-size:28px}}
+
+/* Los años se eligen desde el selector nativo del dispositivo. */
+.field.compact .year-select{width:150px;min-width:150px;min-height:44px;padding-right:32px;background-color:#fff;font-weight:600;cursor:pointer}
+.matrix-filters .year-select{min-width:150px}
+@media(max-width:620px){.matrix-filters .year-select{width:100%;min-width:0}.field.compact .year-select{max-width:100%}}
