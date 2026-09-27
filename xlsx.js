@@ -78,12 +78,15 @@
     }).join("");
     const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
       `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
-      `<sheetViews><sheetView workbookViewId="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>` +
+      `<dimension ref="A1:G${Math.max(4, allRows.length)}"/>` +
+      `<sheetViews><sheetView workbookViewId="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A5" sqref="A5"/></sheetView></sheetViews>` +
+      `<sheetFormatPr baseColWidth="8" defaultRowHeight="15"/>` +
       `<cols>${[16, 33, 28, 43, 17, 31, 54].map((width, i) =>
         `<col min="${i + 1}" max="${i + 1}" width="${width}" customWidth="1"/>`).join("")}</cols>` +
       `<sheetData>${sheetRows}</sheetData>` +
+      `<autoFilter ref="A4:G${Math.max(4, allRows.length)}"/>` +
       `<mergeCells count="2"><mergeCell ref="A1:G1"/><mergeCell ref="A2:G2"/></mergeCells>` +
-      `<autoFilter ref="A4:G${Math.max(4, allRows.length)}"/></worksheet>`;
+      `<pageMargins left="0.5" right="0.5" top="0.7" bottom="0.7" header="0.3" footer="0.3"/></worksheet>`;
     const ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
     return zip([
       ["[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`],
