@@ -98,6 +98,7 @@ function load() {
   return data;
 }
 let state = load(),
+  returnToCalendarDate = null,
   editing = null,
   editingEmployee = null,
   editingHoliday = null,
@@ -223,6 +224,30 @@ function renderCalendar() {
   }
   $("#calendarGrid").innerHTML = cells.join("");
 }
+function openCalendarDay(date) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+  const dialog = $("#calendarDayDialog");
+  const holiday = state.holidays.find((x) => x.date === date);
+  const entries = state.entries
+    .filter((x) => x.date === date)
+    .sort((a, b) => (employee(a)?.company || "").localeCompare(employee(b)?.company || "", "es") ||
+      (employee(a)?.name || "").localeCompare(employee(b)?.name || "", "es"));
+  dialog.dataset.date = date;
+  $("#calendarDayTitle").textContent = new Intl.DateTimeFormat("es-CR", {
+    day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+  }).format(new Date(date + "T12:00:00Z"));
+  $("#calendarDayHoliday").textContent = holiday ? holiday.name : "Día sin feriado registrado";
+  $("#calendarDayCount").textContent = `${entries.length} colaborador${entries.length === 1 ? "" : "es"} registrado${entries.length === 1 ? "" : "s"}`;
+  $("#calendarDayEntries").innerHTML = entries.length
+    ? entries.map((x) => `<div class="calendar-detail-row">
+        <div class="calendar-detail-person"><strong>${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</strong><small>${escapeHtml(employee(x)?.company || "—")} · ${x.type === "feriado" ? "Feriado" : "Ordinario"}</small></div>
+        <span class="tracking tracking-${escapeHtml(x.trackingState || "no_aplica")}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState] || TRACKING.no_aplica)}</span>
+        ${x.note ? `<p class="calendar-detail-note">${escapeHtml(x.note)}</p>` : ""}
+        <button type="button" class="secondary calendar-detail-edit" data-day-edit="${escapeHtml(x.id)}" aria-label="Editar registro de ${escapeHtml(employee(x)?.name || "colaborador")}">Editar</button>
+      </div>`).join("")
+    : '<p class="calendar-detail-empty">No hay colaboradores registrados en esta fecha.</p>';
+  dialog.showModal();
+}
 function renderMatrix() {
   const year = Number($("#matrixYear").value);
   const datesByDay = new Map(
@@ -258,6 +283,20 @@ function openEntry(x, selectedDate) {
   $("#dialogTitle").textContent = x ? "Editar registro" : "Nuevo registro";
   $("#entryDialog").showModal();
 }
+$("#calendarDayClose").onclick = () => $("#calendarDayDialog").close();
+$("#calendarDayAdd").onclick = () => {
+  const date = $("#calendarDayDialog").dataset.date;
+  returnToCalendarDate = date;
+  $("#calendarDayDialog").close();
+  openEntry(null, date);
+};
+$("#entryDialog").addEventListener("close", () => {
+  if (returnToCalendarDate) {
+    const date = returnToCalendarDate;
+    returnToCalendarDate = null;
+    openCalendarDay(date);
+  }
+});
 $("#newEntry").onclick = () => openEntry();
 $("#newEntryFromControl").onclick = () => openEntry();
 $("#closeDialog").onclick = $("#cancelDialog").onclick = () =>
@@ -381,6 +420,7 @@ document.querySelectorAll("[data-team-filter]").forEach(
 document.addEventListener("click", (e) => {
   const edit = e.target.closest("[data-edit]"),
     calendarDate = e.target.closest("[data-calendar-date]"),
+    dayEdit = e.target.closest("[data-day-edit]"),
     editHoliday = e.target.closest("[data-edit-holiday]"),
     deleteHoliday = e.target.closest("[data-delete-holiday]"),
     del = e.target.closest("[data-delete]"),
@@ -391,7 +431,15 @@ document.addEventListener("click", (e) => {
       state.employees.find((x) => x.id === editEmployee.dataset.editEmployee),
     );
   if (edit) openEntry(state.entries.find((x) => x.id === edit.dataset.edit));
-  if (calendarDate) openEntry(null, calendarDate.dataset.calendarDate);
+  if (dayEdit) {
+    const record = state.entries.find((x) => x.id === dayEdit.dataset.dayEdit);
+    if (record) {
+      returnToCalendarDate = record.date;
+      $("#calendarDayDialog").close();
+      openEntry(record);
+    }
+  }
+  if (calendarDate) openCalendarDay(calendarDate.dataset.calendarDate);
   if (editHoliday)
     openHoliday(state.holidays.find((x) => x.id === editHoliday.dataset.editHoliday));
   if (deleteHoliday && confirm("¿Eliminar este feriado? Los registros de colaboradores en esa fecha se conservarán.")) {
