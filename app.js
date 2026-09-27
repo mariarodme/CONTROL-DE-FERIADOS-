@@ -227,10 +227,27 @@ function render() {
 }
 function renderHolidays() {
   const year = $("#holidayYear").value;
-  const matches = state.holidays.filter((x) => x.date.startsWith(`${year}-`)).sort((a, b) => a.date.localeCompare(b.date));
-  $("#holidays").innerHTML = matches.length
-    ? matches.map((x) => `<div class="holiday"><time>${escapeHtml(displayDate(x.date).slice(0, 5))}</time><span>${escapeHtml(x.name)}</span><div class="holiday-actions"><button type="button" class="link" data-edit-holiday="${escapeHtml(x.id)}">Editar</button><button type="button" class="link danger" data-delete-holiday="${escapeHtml(x.id)}">Eliminar</button></div></div>`).join("")
-    : '<p class="empty">No hay feriados registrados para este año. Agregá el primero con el botón de arriba.</p>';
+  const matches = state.holidays
+    .filter((holiday) => holiday.date.startsWith(year + "-"))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const linked = state.entries.filter((entry) => matches.some((holiday) => holiday.date === entry.date));
+  $("#holidaySummary").textContent = `${matches.length} feriado${matches.length === 1 ? "" : "s"} · ${linked.length} registro${linked.length === 1 ? "" : "s"} asociado${linked.length === 1 ? "" : "s"}`;
+  $("#holidays").innerHTML = matches.length ? matches.map((holiday) => {
+    const date = new Date(holiday.date + "T12:00:00Z");
+    const month = new Intl.DateTimeFormat("es-CR", {month: "short", timeZone: "UTC"}).format(date).replace(".", "").toLocaleUpperCase("es");
+    const weekday = new Intl.DateTimeFormat("es-CR", {weekday: "long", timeZone: "UTC"}).format(date);
+    const records = state.entries.filter((entry) => entry.date === holiday.date);
+    const pending = records.filter((entry) => ["pendiente", "pago_pendiente"].includes(entry.trackingState)).length;
+    return `<article class="holiday-card">
+      <div class="holiday-card-main">
+        <time class="holiday-date" datetime="${escapeHtml(holiday.date)}"><span>${escapeHtml(month)}</span><strong>${escapeHtml(holiday.date.slice(8, 10))}</strong></time>
+        <div class="holiday-details"><span class="holiday-eyebrow">${escapeHtml(weekday)} · ${escapeHtml(year)}</span><h3>${escapeHtml(holiday.name)}</h3>
+          <div class="holiday-meta"><span>${records.length} registro${records.length === 1 ? "" : "s"}</span>${pending ? `<span class="holiday-pending">${pending} pendiente${pending === 1 ? "" : "s"}</span>` : ""}</div>
+        </div>
+      </div>
+      <div class="holiday-actions"><button type="button" class="link" data-edit-holiday="${escapeHtml(holiday.id)}" aria-label="Editar ${escapeHtml(holiday.name)}">Editar</button><button type="button" class="link danger" data-delete-holiday="${escapeHtml(holiday.id)}" aria-label="Eliminar ${escapeHtml(holiday.name)}">Eliminar</button></div>
+    </article>`;
+  }).join("") : '<p class="empty holiday-empty">No hay feriados registrados para este año. Agregá el primero con el botón de arriba.</p>';
 }
 function renderCalendar() {
   const month = $("#month").value;
