@@ -579,7 +579,6 @@ function applyAppearance(preferences) {
     const key = kind + "Px";
     const px = fontSize(preferences?.[key], fontRanges[kind], sizePresets[size][key]);
     document.body.style.setProperty("--" + kind + "-size", px + "px");
-    $("#" + key).value = px;
     $("#" + key).textContent = px + "px";
   }
 }
@@ -588,9 +587,9 @@ function saveAppearance() {
     font: $("#fontChoice").value,
     size: $("#textSize").value,
     theme: $("#themeChoice").value,
-    titlePx: Number($("#titlePx").value),
-    subtitlePx: Number($("#subtitlePx").value),
-    bodyPx: Number($("#bodyPx").value),
+    titlePx: parseInt($("#titlePx").value, 10),
+    subtitlePx: parseInt($("#subtitlePx").value, 10),
+    bodyPx: parseInt($("#bodyPx").value, 10),
   };
   applyAppearance(preferences);
   try {
@@ -616,9 +615,9 @@ document.querySelectorAll("[data-font-stepper] button").forEach((button) => {
     const kind = button.closest("[data-font-stepper]").dataset.fontStepper;
     const output = $("#" + kind + "Px");
     const range = fontRanges[kind];
-    const next = Math.min(range.max, Math.max(range.min, Number(output.value) + Number(button.dataset.step) * range.step));
-    if (next === Number(output.value)) return;
-    output.value = next;
+    const next = Math.min(range.max, Math.max(range.min, parseInt(output.value, 10) + Number(button.dataset.step) * range.step));
+    if (next === parseInt(output.value, 10)) return;
+    output.textContent = next + "px";
     saveAppearance();
   });
 });
