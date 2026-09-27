@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
     <title>Control de Feriados · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260927-6" />
+    <link rel="stylesheet" href="styles.css?v=20260927-7" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -252,16 +252,16 @@
               <p>Los cambios se aplican de inmediato y se recuerdan en este dispositivo.</p>
               <div class="settings-fields">
                 <label class="field">Tipografía
-                  <select id="fontChoice"><option value="clasica">Clásica · como la portada</option><option value="moderna">Moderna · letras sencillas</option></select>
+                  <select id="fontChoice"><option value="clasica">Clásica · como la portada</option><option value="moderna">Moderna · letras sencillas</option><option value="editorial">Editorial · serif elegante</option><option value="ejecutiva">Ejecutiva · estilo empresarial</option></select>
                 </label>
                 <label class="field">Tamaño de texto
-                  <select id="textSize"><option value="normal">Normal</option><option value="grande">Grande</option></select>
+                  <select id="textSize"><option value="pequeno">Pequeño</option><option value="normal">Normal</option><option value="grande">Grande</option><option value="muy-grande">Muy grande</option></select>
                 </label>
                 <label class="field">Colores
-                  <select id="themeChoice"><option value="crema">Crema y verde oliva</option><option value="claro">Blanco y gris</option></select>
+                  <select id="themeChoice"><option value="crema">Crema y verde oliva</option><option value="claro">Blanco y gris</option><option value="azul">Marfil y azul marino</option><option value="arena">Arena y dorado</option></select>
                 </label>
               </div>
-              <div class="settings-preview"><span>VISTA PREVIA</span><strong>Resumen del período</strong><p>Así se verá el contenido al cambiar la tipografía y el tamaño.</p></div>
+              <div class="settings-preview"><span>VISTA PREVIA</span><strong>Resumen del período</strong><p>Así se verá el contenido al cambiar la tipografía, el tamaño y los colores.</p></div>
               <button type="button" class="secondary" id="resetAppearance">Restablecer diseño original</button>
               <p class="settings-status" id="settingsStatus" role="status" aria-live="polite"></p>
             </div>
@@ -404,6 +404,6 @@
     </dialog>
     <script src="firebase-config.js?v=20260927-3"></script>
     <script src="cloud.js?v=20260927-3"></script>
-    <script src="app.js?v=20260927-6"></script>
+    <script src="app.js?v=20260927-7"></script>
   </body>
 </html>
