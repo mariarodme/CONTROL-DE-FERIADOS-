@@ -385,3 +385,7 @@ body[data-text-size] .font-controls h4{font-size:calc(var(--subtitle-size) * .75
 body[data-text-size] .font-controls>p,body[data-text-size] .font-stepper strong{font-size:calc(var(--body-size) * .875)}
 body[data-text-size] .font-stepper small{font-size:calc(var(--body-size) * .75)}
 @media(max-width:480px){.font-controls{padding:16px}.font-stepper{gap:8px}.stepper-buttons button{width:36px}}
+
+/* Control General: filtros legibles en dos filas. */
+@media(min-width:1201px){#registro .filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
+#registro .filters .field select,#registro .filters .field input{width:100%}
