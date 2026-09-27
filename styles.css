@@ -268,7 +268,7 @@ dialog::backdrop{background:#1d211d88}
 .share-link{display:block;max-width:100%;margin-top:1rem}
 .share-link input{display:block;width:100%;max-width:100%;margin-top:.4rem;box-sizing:border-box}
 
-.calendar-detail-dialog{width:min(92vw,700px);max-height:min(85vh,850px);overflow:auto}
+.calendar-detail-dialog{box-sizing:border-box;width:min(92vw,700px);max-height:min(85vh,850px);overflow:auto}
 .calendar-detail-dialog .dialog-head{align-items:flex-start}
 .calendar-detail-dialog .dialog-head h2{margin:.2rem 0 .3rem}
 .dialog-eyebrow{font-size:.7rem;font-weight:700;letter-spacing:.14em;color:#68735c}
