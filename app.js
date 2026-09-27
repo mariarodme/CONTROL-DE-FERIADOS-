@@ -150,6 +150,7 @@ function filters() {
 function render() {
   const month = $("#month").value,
     period = state.entries.filter((x) => !month || x.date.startsWith(month));
+  $("#controlMonth").value = month;
   for (const [elementId, value] of [
     ["pending", "pendiente"],
     ["enjoyed", "disfrutado"],
@@ -485,6 +486,15 @@ for (const s of [
   "#trackingFilter",
 ])
   $(s).addEventListener(s === "#search" ? "input" : "change", render);
+$("#controlMonth").addEventListener("change", () => {
+  const chosen = $("#controlMonth").value;
+  if (!chosen) {
+    $("#controlMonth").value = $("#month").value;
+    return;
+  }
+  $("#month").value = chosen;
+  render();
+});
 $("#matrixYear").addEventListener("change", renderMatrix);
 $("#holidayYear").addEventListener("change", renderHolidays);
 for (const [button, offset] of [["#previousMonth", -1], ["#nextMonth", 1]])
