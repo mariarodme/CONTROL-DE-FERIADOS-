@@ -93,7 +93,7 @@ main>section:not(.home-hero){margin:38px clamp(18px,5vw,80px) 0;scroll-margin-to
 .field input,.field select,.field textarea{background:#fff;border:1px solid #cfcac0;border-radius:8px;padding:11px 12px;min-width:0;color:#292a25;outline:none}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:#61705c;box-shadow:0 0 0 3px #61705c22}
 .field.compact input{width:160px}
-.filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:22px;border-bottom:1px solid #e1ddd4}
+.filters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;padding:22px;border-bottom:1px solid #e1ddd4}
 .table-wrap{overflow:auto;width:100%}
 table{width:100%;border-collapse:collapse;font-size:12px}
 th,td{padding:14px 12px;text-align:left;border-bottom:1px solid #e6e1d8;vertical-align:top}
