@@ -553,9 +553,9 @@ window.addEventListener("hashchange", () => showView(location.hash.slice(1)));
 const APPEARANCE_KEY = "jaco-jornadas-apariencia";
 const defaultAppearance = {font: "clasica", size: "normal", theme: "crema"};
 function applyAppearance(preferences) {
-  const font = ["clasica", "moderna"].includes(preferences?.font) ? preferences.font : "clasica";
-  const size = ["normal", "grande"].includes(preferences?.size) ? preferences.size : "normal";
-  const theme = ["crema", "claro"].includes(preferences?.theme) ? preferences.theme : "crema";
+  const font = ["clasica", "moderna", "editorial", "ejecutiva"].includes(preferences?.font) ? preferences.font : "clasica";
+  const size = ["pequeno", "normal", "grande", "muy-grande"].includes(preferences?.size) ? preferences.size : "normal";
+  const theme = ["crema", "claro", "azul", "arena"].includes(preferences?.theme) ? preferences.theme : "crema";
   document.body.dataset.font = $("#fontChoice").value = font;
   document.body.dataset.textSize = $("#textSize").value = size;
   document.body.dataset.theme = $("#themeChoice").value = theme;
