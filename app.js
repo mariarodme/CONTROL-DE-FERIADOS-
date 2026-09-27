@@ -206,6 +206,7 @@ function render() {
   renderCalendar();
   renderMatrix();
   renderPending();
+  renderReports();
 }
 function renderHolidays() {
   const year = $("#holidayYear").value;
@@ -287,6 +288,82 @@ function renderPending() {
   const entries = state.entries.filter((x) => x.trackingState === "pendiente" || x.trackingState === "pago_pendiente").sort((a,b) => a.date.localeCompare(b.date));
   $("#pendingCount").textContent = `${entries.length} pendiente${entries.length === 1 ? "" : "s"}`;
   $("#pendingList").innerHTML = entries.length ? entries.map((x) => `<div class="pending-item"><div><strong>${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</strong><small>${escapeHtml(employee(x)?.company || "—")} · ${escapeHtml(displayDate(x.date))}</small></div><span class="tracking tracking-${escapeHtml(x.trackingState)}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState])}</span><button type="button" class="link" data-edit="${escapeHtml(x.id)}">Editar</button></div>`).join("") : '<p class="empty">No hay registros pendientes.</p>';
+}
+const REPORT_LABELS = {
+  mensual: ["Reporte mensual", "Detalle de feriados y días laborados por mes."],
+  anual: ["Reporte anual", "Detalle de feriados y días laborados del año."],
+  pendientes: ["Pendientes al cierre", "Estados pendientes con fecha hasta el cierre elegido."],
+};
+let reportKind = "mensual";
+function reportRecords() {
+  const company = $("#reportCompany").value;
+  const year = $("#reportYear").value;
+  const month = $("#reportMonth").value;
+  const cutoff = $("#reportCutoff").value;
+  return state.entries
+    .filter((entry) => {
+      const person = employee(entry);
+      if (company && person?.company !== company) return false;
+      if (reportKind === "mensual") return entry.date.startsWith(year + "-" + month);
+      if (reportKind === "anual") return entry.date.startsWith(year + "-");
+      return !!cutoff && entry.date <= cutoff &&
+        ["pendiente", "pago_pendiente"].includes(entry.trackingState);
+    })
+    .sort((a,b) => a.date.localeCompare(b.date) ||
+      (employee(a)?.company || "").localeCompare(employee(b)?.company || "", "es") ||
+      (employee(a)?.name || "").localeCompare(employee(b)?.name || "", "es"));
+}
+function reportPeriodText() {
+  if (reportKind === "pendientes") return "Corte al " + displayDate($("#reportCutoff").value);
+  if (reportKind === "anual") return "Año " + $("#reportYear").value;
+  const monthName = $("#reportMonth").selectedOptions[0]?.textContent || "";
+  return monthName + " de " + $("#reportYear").value;
+}
+function renderReports() {
+  const yearSelect = $("#reportYear");
+  const selectedYear = yearSelect.value || String(new Date().getFullYear());
+  const years = [...new Set([String(new Date().getFullYear()),
+    ...state.holidays.map((x) => x.date.slice(0,4)),
+    ...state.entries.map((x) => x.date.slice(0,4))])]
+    .filter((x) => /^\d{4}$/.test(x)).sort((a,b) => b.localeCompare(a));
+  yearSelect.innerHTML = years.map((year) => `<option value="${year}">${year}</option>`).join("");
+  yearSelect.value = years.includes(selectedYear) ? selectedYear : years[0];
+  const [title, subtitle] = REPORT_LABELS[reportKind];
+  $("#reportTitle").textContent = title;
+  $("#reportSubtitle").textContent = subtitle;
+  $("#reportMonthWrap").hidden = reportKind !== "mensual";
+  $("#reportYearWrap").hidden = reportKind === "pendientes";
+  $("#reportCutoffWrap").hidden = reportKind !== "pendientes";
+  document.querySelectorAll("[data-report-kind]").forEach((button) =>
+    button.setAttribute("aria-selected", String(button.dataset.reportKind === reportKind)));
+  $("#reportPeriod").textContent = reportPeriodText() +
+    " · " + ($("#reportCompany").selectedOptions[0]?.textContent || "Todas las empresas");
+  const rows = reportRecords();
+  const counts = [
+    ["Registros", rows.length],
+    ["Pendiente", rows.filter((x) => x.trackingState === "pendiente").length],
+    ["Disfrutado", rows.filter((x) => x.trackingState === "disfrutado").length],
+    ["Pago pendiente", rows.filter((x) => x.trackingState === "pago_pendiente").length],
+    ["Pagado", rows.filter((x) => x.trackingState === "pagado").length],
+  ];
+  $("#reportSummary").innerHTML = counts.map(([label, count]) =>
+    `<div><span>${label}</span><strong>${count}</strong></div>`).join("");
+  const holidayNames = new Map(state.holidays.map((x) => [x.date, x.name]));
+  $("#reportRows").innerHTML = rows.map((entry) => {
+    const person = employee(entry);
+    const dayName = holidayNames.get(entry.date) ||
+      (entry.type === "feriado" ? "Feriado registrado" : "Día ordinario");
+    return `<tr><td>${escapeHtml(displayDate(entry.date))}</td><td>${escapeHtml(dayName)}</td><td>${escapeHtml(person?.name || "Colaborador eliminado")}</td><td>${escapeHtml(person?.company || "—")}</td><td>${escapeHtml(TRACKING[entry.trackingState] || TRACKING.no_aplica)}</td><td>${escapeHtml(entry.note || "—")}</td></tr>`;
+  }).join("");
+  $("#reportEmpty").hidden = rows.length > 0;
+  $("#reportFootnote").textContent = reportKind === "pendientes"
+    ? "Se muestran los registros fechados hasta el cierre que actualmente tienen estado Pendiente o Trabajado – Pago pendiente."
+    : "Los estados reflejan la información actual de los registros.";
+}
+function reportCsvCell(value) {
+  const text = String(value ?? "");
+  const safe = /^[=+@\-\t\r]/.test(text) ? "'" + text : text;
+  return '"' + safe.replace(/"/g, '""') + '"';
 }
 function openEntry(x, selectedDate) {
   if (!state.employees.length) {
@@ -770,6 +847,38 @@ $("#exportCsv").onclick = () => {
       [header, ...data].map((row) => row.map(csvCell).join(";")).join("\r\n"),
     "text/csv;charset=utf-8",
   );
+};
+const reportToday = new Date();
+$("#reportCutoff").value = [reportToday.getFullYear(), String(reportToday.getMonth()+1).padStart(2,"0"), String(reportToday.getDate()).padStart(2,"0")].join("-");
+$("#reportMonth").innerHTML = Array.from({length:12}, (_, i) => {
+  const month = String(i+1).padStart(2,"0");
+  const label = new Intl.DateTimeFormat("es-CR", {month:"long"}).format(new Date(2026, i, 1));
+  return `<option value="${month}">${label.charAt(0).toUpperCase() + label.slice(1)}</option>`;
+}).join("");
+$("#reportMonth").value = String(reportToday.getMonth()+1).padStart(2,"0");
+for (const selector of ["#reportMonth", "#reportYear", "#reportCutoff", "#reportCompany"])
+  $(selector).addEventListener("change", renderReports);
+document.querySelectorAll("[data-report-kind]").forEach((button) => button.addEventListener("click", () => {
+  reportKind = button.dataset.reportKind;
+  renderReports();
+}));
+$("#printReport").onclick = () => window.print();
+$("#downloadReport").onclick = () => {
+  const names = new Map(state.holidays.map((x) => [x.date, x.name]));
+  const header = ["Fecha", "Feriado / día", "Colaborador", "Empresa", "Tipo de día", "Estado", "Comentarios"];
+  const data = reportRecords().map((entry) => {
+    const person = employee(entry);
+    return [entry.date, names.get(entry.date) || (entry.type === "feriado" ? "Feriado registrado" : "Día ordinario"),
+      person?.name || "Colaborador eliminado", person?.company || "",
+      entry.type === "feriado" ? "Feriado" : "Ordinario",
+      TRACKING[entry.trackingState] || TRACKING.no_aplica, entry.note || ""];
+  });
+  const period = reportKind === "pendientes" ? $("#reportCutoff").value :
+    $("#reportYear").value + (reportKind === "mensual" ? "-" + $("#reportMonth").value : "");
+  const company = $("#reportCompany").value ? "-" + ($("#reportCompany").value === companies[0] ? "monte-carlo" : "onsite") : "";
+  download(`reporte-${reportKind}-${period}${company}.csv`,
+    "\ufeff" + [header, ...data].map((row) => row.map(reportCsvCell).join(";")).join("\r\n"),
+    "text/csv;charset=utf-8");
 };
 $("#month").value = new Date().toISOString().slice(0, 7);
 render();
