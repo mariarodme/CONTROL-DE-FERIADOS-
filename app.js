@@ -320,6 +320,7 @@ function reportPeriodText() {
   return monthName + " de " + $("#reportYear").value;
 }
 function renderReports() {
+  $("#reportDownloadStatus").textContent = "";
   const yearSelect = $("#reportYear");
   const selectedYear = yearSelect.value || String(new Date().getFullYear());
   const years = [...new Set([String(new Date().getFullYear()),
@@ -871,15 +872,20 @@ $("#downloadReport").onclick = () => {
   const period = reportKind === "pendientes" ? $("#reportCutoff").value :
     $("#reportYear").value + (reportKind === "mensual" ? "-" + $("#reportMonth").value : "");
   const company = $("#reportCompany").value ? "-" + ($("#reportCompany").value === companies[0] ? "monte-carlo" : "onsite") : "";
-  const workbook = window.makeReportWorkbook({
-    title: REPORT_LABELS[reportKind][0],
-    period: reportPeriodText(),
-    company: $("#reportCompany").selectedOptions[0]?.textContent || "Todas las empresas",
-    headings: header,
-    rows: data,
-  });
-  download(`reporte-${reportKind}-${period}${company}.xlsx`, workbook,
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  try {
+    const workbook = window.makeReportWorkbook({
+      title: REPORT_LABELS[reportKind][0],
+      period: reportPeriodText(),
+      company: $("#reportCompany").selectedOptions[0]?.textContent || "Todas las empresas",
+      headings: header,
+      rows: data,
+    });
+    download(`reporte-${reportKind}-${period}${company}.xlsx`, workbook,
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    $("#reportDownloadStatus").textContent = "Archivo Excel preparado para descargar.";
+  } catch (error) {
+    $("#reportDownloadStatus").textContent = "No se pudo preparar el archivo Excel. Volvé a cargar la página e intentá de nuevo.";
+  }
 };
 $("#month").value = new Date().toISOString().slice(0, 7);
 render();
