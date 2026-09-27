@@ -336,6 +336,15 @@
         </div>
       </form>
     </dialog>
+    <dialog id="calendarDayDialog" class="calendar-detail-dialog" aria-labelledby="calendarDayTitle">
+      <div class="dialog-head">
+        <div><span class="dialog-eyebrow">REGISTROS DE LA FECHA</span><h2 id="calendarDayTitle"></h2><p id="calendarDayHoliday"></p></div>
+        <button type="button" class="close" id="calendarDayClose" aria-label="Cerrar detalle del día">×</button>
+      </div>
+      <p id="calendarDayCount" class="calendar-detail-count"></p>
+      <div id="calendarDayEntries" class="calendar-detail-list"></div>
+      <div class="dialog-actions"><button type="button" class="primary" id="calendarDayAdd">+ Agregar registro en esta fecha</button></div>
+    </dialog>
     <dialog id="entryDialog">
       <form id="entryForm">
         <div class="dialog-head">
@@ -393,6 +402,6 @@
     </dialog>
     <script src="firebase-config.js?v=20260927-3"></script>
     <script src="cloud.js?v=20260927-3"></script>
-    <script src="app.js"></script>
+    <script src="app.js?v=20260927-4"></script>
   </body>
 </html>
