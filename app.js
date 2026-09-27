@@ -161,6 +161,22 @@ function renderHolidayFilter() {
       .join("")}</optgroup>`).join("");
   select.value = selected && selected.startsWith(month) ? selected : "";
 }
+function renderEmployeeCard(person) {
+  const entries = state.entries.filter((entry) => entry.employeeId === person.id);
+  const counts = [
+    ["Registros", entries.length, "total"],
+    ["Disfrutados", entries.filter((entry) => entry.trackingState === "disfrutado").length, "enjoyed"],
+    ["Pagados", entries.filter((entry) => entry.trackingState === "pagado").length, "paid"],
+    ["Pendientes", entries.filter((entry) => ["pendiente", "pago_pendiente"].includes(entry.trackingState)).length, "pending"],
+  ];
+  const initials = person.name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0).toLocaleUpperCase("es")).join("");
+  const shortCompany = person.company === companies[0] ? "Monte Carlo" : "Jacó Beach Onsite";
+  return `<article class="person-card">
+    <div class="person-card-head"><span class="person-avatar" aria-hidden="true">${escapeHtml(initials)}</span><div class="person-identity"><h4>${escapeHtml(person.name)}</h4><small>${escapeHtml(shortCompany)}</small></div></div>
+    <div class="person-stats">${counts.map(([label, count, tone]) => `<div class="person-stat person-stat-${tone}"><span>${label}</span><strong>${count}</strong></div>`).join("")}</div>
+    <div class="person-actions"><button type="button" class="person-add" data-new-for-employee="${escapeHtml(person.id)}" aria-label="Registrar día para ${escapeHtml(person.name)}">+ Registrar día</button><button type="button" class="link" data-edit-employee="${escapeHtml(person.id)}" aria-label="Editar a ${escapeHtml(person.name)}">Editar</button><button type="button" class="link danger" data-remove-employee="${escapeHtml(person.id)}" aria-label="Eliminar a ${escapeHtml(person.name)}">Eliminar</button></div>
+  </article>`;
+}
 function render() {
   const month = $("#month").value,
     period = state.entries.filter((x) => !month || x.date.startsWith(month));
@@ -185,16 +201,17 @@ function render() {
         `<tr><td data-label="Fecha">${escapeHtml(displayDate(x.date))}</td><td data-label="Colaborador">${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</td><td data-label="Empresa">${escapeHtml(employee(x)?.company || "—")}</td><td data-label="Tipo"><span class="pill ${x.type === "feriado" ? "feriado" : ""}">${x.type === "feriado" ? "Feriado" : "Ordinario"}</span></td><td data-label="Estado"><span class="tracking tracking-${escapeHtml(x.trackingState || "no_aplica")}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState] || TRACKING.no_aplica)}</span></td><td data-label="Comentarios">${escapeHtml(x.note) || '<span class="muted">—</span>'}</td><td data-label="Acciones"><div class="actions"><button class="link" data-edit="${escapeHtml(x.id)}">Editar</button><button class="link danger" data-delete="${escapeHtml(x.id)}">Eliminar</button></div></td></tr>`,
     )
     .join("");
+  const visiblePeople = state.employees.filter((person) => !teamFilter || person.company === teamFilter);
+  const visibleEntries = state.entries.filter((entry) => visiblePeople.some((person) => person.id === entry.employeeId));
+  $("#teamOverview").textContent = `${visiblePeople.length} colaborador${visiblePeople.length === 1 ? "" : "es"} · ${visibleEntries.length} registro${visibleEntries.length === 1 ? "" : "s"}`;
   $("#employees").innerHTML = state.employees.length
-    ? companies
-        .filter((c) => !teamFilter || c === teamFilter)
-        .map((c) => {
-          const members = state.employees
-            .filter((e) => e.company === c)
+    ? companies.filter((company) => !teamFilter || company === teamFilter)
+        .map((company) => {
+          const members = state.employees.filter((person) => person.company === company)
             .sort((a, b) => a.name.localeCompare(b.name, "es"));
-          return `<div class="team-group"><div class="team-header"><h3>${escapeHtml(c)}</h3><span>${members.length} colaborador${members.length === 1 ? "" : "es"}</span></div><div class="team-list">${members.map((e, i) => `<div class="person"><span class="person-number">${String(i + 1).padStart(2, "0")}</span><strong>${escapeHtml(e.name)}</strong><span class="person-records">${state.entries.filter((x) => x.employeeId === e.id).length} registros</span><div class="person-actions"><button type="button" class="link" data-edit-employee="${escapeHtml(e.id)}" aria-label="Editar a ${escapeHtml(e.name)}">Editar</button><button type="button" class="link danger" data-remove-employee="${escapeHtml(e.id)}" aria-label="Eliminar a ${escapeHtml(e.name)}">Eliminar</button></div></div>`).join("")}</div></div>`;
-        })
-        .join("")
+          return `<section class="team-group"><div class="team-header"><div><span class="team-eyebrow">EMPRESA</span><h3>${escapeHtml(company)}</h3></div><span class="team-count">${members.length} colaborador${members.length === 1 ? "" : "es"}</span></div>
+            <div class="team-list">${members.length ? members.map(renderEmployeeCard).join("") : '<p class="team-empty">Todavía no hay colaboradores en esta empresa.</p>'}</div></section>`;
+        }).join("")
     : '<p class="empty">Agregá colaboradores para comenzar.</p>';
   renderHolidays();
   $("#entryForm").elements.employeeId.innerHTML = state.employees
@@ -531,7 +548,12 @@ document.addEventListener("click", (e) => {
     deleteHoliday = e.target.closest("[data-delete-holiday]"),
     del = e.target.closest("[data-delete]"),
     remove = e.target.closest("[data-remove-employee]"),
-    editEmployee = e.target.closest("[data-edit-employee]");
+    editEmployee = e.target.closest("[data-edit-employee]"),
+    newForEmployee = e.target.closest("[data-new-for-employee]");
+  if (newForEmployee) {
+    openEntry(null);
+    $("#entryForm").elements.employeeId.value = newForEmployee.dataset.newForEmployee;
+  }
   if (editEmployee)
     openEmployee(
       state.employees.find((x) => x.id === editEmployee.dataset.editEmployee),
