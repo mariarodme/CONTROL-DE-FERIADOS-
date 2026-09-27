@@ -273,9 +273,15 @@ function renderMatrix() {
     if (entry.type === "feriado" && entry.date.startsWith(`${year}-`) && !datesByDay.has(entry.date))
       datesByDay.set(entry.date, "Feriado registrado");
   const dates = [...datesByDay].sort(([a], [b]) => a.localeCompare(b));
-  $("#matrixEmpty").hidden = dates.length > 0;
+  const company = $("#matrixCompany").value;
+  const people = state.employees.filter((person) => !company || person.company === company)
+    .sort((a,b) => a.company.localeCompare(b.company,"es") || a.name.localeCompare(b.name,"es"));
+  $("#matrixEmpty").hidden = dates.length > 0 && people.length > 0;
+  $("#matrixEmpty").textContent = dates.length === 0
+    ? "No hay feriados ni registros para este año."
+    : "No hay colaboradores en la empresa seleccionada.";
   $("#matrixHead").innerHTML = `<tr><th>Colaborador</th>${dates.map(([date, name]) => `<th title="${escapeHtml(name)}">${escapeHtml(displayDate(date).slice(0, 5))}<small>${escapeHtml(name)}</small></th>`).join("")}</tr>`;
-  $("#matrixBody").innerHTML = state.employees.slice().sort((a,b) => a.company.localeCompare(b.company,"es") || a.name.localeCompare(b.name,"es")).map((person) => `<tr><th scope="row"><strong>${escapeHtml(person.name)}</strong><small>${escapeHtml(person.company)}</small></th>${dates.map(([date]) => { const entry = state.entries.find((x) => x.employeeId === person.id && x.date === date); return `<td>${entry ? `<span class="tracking tracking-${escapeHtml(entry.trackingState)}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[entry.trackingState])}</span>` : '<span class="muted">—</span>'}</td>`; }).join("")}</tr>`).join("");
+  $("#matrixBody").innerHTML = people.map((person) => `<tr><th scope="row"><strong>${escapeHtml(person.name)}</strong><small>${escapeHtml(person.company)}</small></th>${dates.map(([date]) => { const entry = state.entries.find((x) => x.employeeId === person.id && x.date === date); return `<td>${entry ? `<span class="tracking tracking-${escapeHtml(entry.trackingState)}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[entry.trackingState])}</span>` : '<span class="muted">—</span>'}</td>`; }).join("")}</tr>`).join("");
 }
 function renderPending() {
   const entries = state.entries.filter((x) => x.trackingState === "pendiente" || x.trackingState === "pago_pendiente").sort((a,b) => a.date.localeCompare(b.date));
@@ -516,6 +522,7 @@ $("#controlMonth").addEventListener("change", () => {
   render();
 });
 $("#matrixYear").addEventListener("change", renderMatrix);
+$("#matrixCompany").addEventListener("change", renderMatrix);
 $("#holidayYear").addEventListener("change", renderHolidays);
 for (const [button, offset] of [["#previousMonth", -1], ["#nextMonth", 1]])
   $(button).onclick = () => {
