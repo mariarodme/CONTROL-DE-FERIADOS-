@@ -141,13 +141,23 @@ function load() {
   } catch {}
   return data;
 }
+const localToday = () => new Date().toLocaleDateString("en-CA");
+function personEmployedOn(person, date) {
+  if (!person || !/^\d{4}-\d{2}-\d{2}$/.test(date || "")) return false;
+  const start = person.startDate || "";
+  const end = person.endDate || (person.archivedAt ? person.archivedAt.slice(0, 10) : "");
+  return (!start || date >= start) && (!end || date <= end) && (!person.archivedAt || date <= person.archivedAt.slice(0, 10));
+}
+const isArchived = (person) => Boolean(person.archivedAt || person.endDate && person.endDate < localToday());
+let entryRevision, employeeRevision, bulkRevision, holidayRevision;
 let state = load(),
   returnToCalendarDate = null,
   editing = null,
   editingEmployee = null,
   editingHoliday = null,
   activePersonId = null,
-  teamFilter = "";
+  teamFilter = "",
+  teamStatus = "active";
 function businessSnapshot(data) {
   return JSON.parse(JSON.stringify({
     employees: data.employees || [], holidays: data.holidays || [], entries: data.entries || [],
@@ -225,10 +235,17 @@ function protectedChange(previous, current) {
   }
   const oldPeople = new Map(previous.employees.map((item) => [item.id, item]));
   const newPeople = new Map(current.employees.map((item) => [item.id, item]));
+  const closedDates = state.holidays.filter((holiday) => isClosed(holiday.date)).map((holiday) => holiday.date);
   for (const id of new Set([...oldPeople.keys(), ...newPeople.keys()])) {
-    if (JSON.stringify(oldPeople.get(id)) === JSON.stringify(newPeople.get(id))) continue;
-    const linked = previous.entries.find((entry) => entry.employeeId === id && isClosed(entry.date));
-    if (linked) return linked.date.slice(0, 7);
+    const before = oldPeople.get(id), after = newPeople.get(id);
+    if (JSON.stringify(before) === JSON.stringify(after)) continue;
+    if (before && after && (before.name !== after.name || before.company !== after.company)) {
+      const linked = previous.entries.find((entry) => entry.employeeId === id && isClosed(entry.date));
+      if (linked) return linked.date.slice(0, 7);
+    }
+    const changedDate = closedDates.find((date) =>
+      personEmployedOn(before, date) !== personEmployedOn(after, date));
+    if (changedDate) return changedDate.slice(0, 7);
   }
   return "";
 }
@@ -261,7 +278,7 @@ function closeReview(month) {
   const gaps = state.holidays.filter((holiday) => holiday.date.startsWith(month))
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((holiday) => ({
-      holiday, people: state.employees.filter((person) =>
+      holiday, people: state.employees.filter((person) => personEmployedOn(person, holiday.date) &&
         !state.entries.some((entry) => entry.date === holiday.date && entry.employeeId === person.id))
         .sort((a, b) => a.company.localeCompare(b.company, "es") || a.name.localeCompare(b.name, "es")),
     })).filter((item) => item.people.length);
@@ -323,7 +340,7 @@ $("#closeReviewDialog").addEventListener("click", (event) => {
 });
 function historyDescription(entity, value) {
   if (!value) return "";
-  if (entity === "colaborador") return `${value.name} · ${value.company}`;
+  if (entity === "colaborador") return `${value.name} · ${value.company}${value.startDate ? " · Ingreso: " + displayDate(value.startDate) : ""}${value.endDate ? " · Salida: " + displayDate(value.endDate) : ""}${value.archivedAt ? " · Archivado" : ""}`;
   if (entity === "feriado") return `${displayDate(value.date)} · ${value.name}`;
   return `${displayDate(value.date)} · ${value.type === "feriado" ? "Feriado" : "Ordinario"} · ${TRACKING[value.trackingState] || TRACKING.no_aplica}${value.paidAt ? " · Pagado: " + displayDate(value.paidAt) : ""}${value.compensatoryDate ? " · Libre disfrutado: " + displayDate(value.compensatoryDate) : ""}${value.note ? " · " + value.note : ""}`;
 }
@@ -343,7 +360,7 @@ function collectHistoryChanges(previous, current) {
       const person = entity === "registro" ? people.get(value.employeeId) : null;
       events.push({
         id: id(), at, actor, entity,
-        action: !before ? "Creó" : !after ? "Eliminó" : "Editó",
+        action: !before ? "Creó" : !after ? "Eliminó" : entity === "colaborador" && !isArchived(before) && isArchived(after) ? "Archivó" : entity === "colaborador" && isArchived(before) && !isArchived(after) ? "Reactivó" : "Editó",
         title: entity === "registro" ? `${person?.name || "Colaborador eliminado"} · ${displayDate(value.date)}`
           : entity === "feriado" ? value.name : value.name,
         company: entity === "colaborador" ? value.company : person?.company || "",
@@ -354,7 +371,32 @@ function collectHistoryChanges(previous, current) {
   }
   return events;
 }
+let toastTimer;
+function showSaveToast(value, mode = "local") {
+  const toast = $("#saveToast");
+  toast.textContent = value;
+  toast.dataset.mode = mode;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, 7000);
+}
+window.jornadasSaveStatus = (mode) => {
+  if ($("#saveToast").hidden) return;
+  if (mode === "online") showSaveToast("✓ Guardado en línea", "online");
+  if (mode === "error") showSaveToast("⚠ Guardado en este dispositivo; revisá la sincronización en Configuración.", "error");
+};
+function formIsCurrent(token) {
+  if (window.jornadasCloud?.isFresh?.(token) !== false) return true;
+  alert("Los datos cambiaron mientras tenías este formulario abierto. Cerralo y abrilo de nuevo para revisar la información actual. No se guardó este cambio.");
+  return false;
+}
 function save(options = {}) {
+  if (window.jornadasCloud?.canEdit?.() === false) {
+    state = structuredClone(lastSavedState);
+    render();
+    alert("Hay un cambio en línea pendiente de resolver. Abrí Configuración antes de volver a editar.");
+    return false;
+  }
   const current = businessSnapshot(state);
   const blockedMonth = protectedChange(lastBusinessSnapshot, current);
   if (blockedMonth) {
@@ -401,6 +443,7 @@ function save(options = {}) {
     changes.length === 1 ? `Antes de ${changes[0].action.toLowerCase()} ${changes[0].entity}` :
     `Antes de ${changes.length} cambios`);
   render();
+  showSaveToast(options.confirmation ? `✓ ${options.confirmation} · guardado en este dispositivo` : "✓ Cambios guardados en este dispositivo", "local");
   window.jornadasCloud?.changed();
   return true;
 }
@@ -536,10 +579,11 @@ function renderEmployeeCard(person) {
   ];
   const initials = person.name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0).toLocaleUpperCase("es")).join("");
   const shortCompany = person.company === companies[0] ? "Monte Carlo" : "Jacó Beach Onsite";
-  return `<article class="person-card">
-    <div class="person-card-head"><span class="person-avatar" aria-hidden="true">${escapeHtml(initials)}</span><div class="person-identity"><h4>${escapeHtml(person.name)}</h4><small>${escapeHtml(shortCompany)}</small></div></div>
+  const archived = isArchived(person);
+  return `<article class="person-card${archived ? " is-archived" : ""}">
+    <div class="person-card-head"><span class="person-avatar" aria-hidden="true">${escapeHtml(initials)}</span><div class="person-identity"><h4>${escapeHtml(person.name)}</h4><small>${escapeHtml(shortCompany)} · ${archived ? "Archivado" : "Activo"}${person.startDate ? " · Ingreso: " + escapeHtml(displayDate(person.startDate)) : ""}${person.endDate ? " · Salida: " + escapeHtml(displayDate(person.endDate)) : ""}</small></div></div>
     <div class="person-stats">${counts.map(([label, count, tone]) => `<div class="person-stat person-stat-${tone}"><span>${label}</span><strong>${count}</strong></div>`).join("")}</div>
-    <div class="person-actions"><button type="button" class="secondary" data-profile="${escapeHtml(person.id)}" aria-label="Ver ficha de ${escapeHtml(person.name)}">Ver ficha</button><button type="button" class="person-add" data-new-for-employee="${escapeHtml(person.id)}" aria-label="Registrar día para ${escapeHtml(person.name)}">+ Registrar día</button><button type="button" class="link" data-edit-employee="${escapeHtml(person.id)}" aria-label="Editar a ${escapeHtml(person.name)}">Editar</button><button type="button" class="link danger" data-remove-employee="${escapeHtml(person.id)}" aria-label="Eliminar a ${escapeHtml(person.name)}">Eliminar</button></div>
+    <div class="person-actions"><button type="button" class="secondary" data-profile="${escapeHtml(person.id)}" aria-label="Ver ficha de ${escapeHtml(person.name)}">Ver ficha</button>${archived ? "" : `<button type="button" class="person-add" data-new-for-employee="${escapeHtml(person.id)}" aria-label="Registrar día para ${escapeHtml(person.name)}">+ Registrar día</button>`}<button type="button" class="link" data-edit-employee="${escapeHtml(person.id)}" aria-label="Editar a ${escapeHtml(person.name)}">Editar</button><button type="button" class="link${archived ? "" : " danger"}" data-remove-employee="${escapeHtml(person.id)}" aria-label="${archived ? "Reactivar" : "Archivar"} a ${escapeHtml(person.name)}">${archived ? "Reactivar" : "Archivar"}</button></div>
   </article>`;
 }
 function renderPersonProfile() {
@@ -562,7 +606,7 @@ function renderPersonProfile() {
   const visible = records.filter((entry) => !$("#personYear").value || entry.date.startsWith($("#personYear").value))
     .sort((a, b) => b.date.localeCompare(a.date));
   $("#personTitle").textContent = person.name;
-  $("#personCompany").textContent = person.company;
+  $("#personCompany").textContent = person.company + (person.startDate ? " · Ingreso: " + displayDate(person.startDate) : "") + (person.endDate ? " · Salida: " + displayDate(person.endDate) : "") + (isArchived(person) ? " · Archivado" : " · Activo");
   const totals = [
     ["Registros", visible.length],
     ["Pago pendiente", visible.filter((entry) => entry.trackingState === "pago_pendiente").length],
@@ -659,7 +703,7 @@ function renderTasks(month) {
     .sort((a,b) => a.date.localeCompare(b.date))
     .map((holiday) => {
       const recorded = new Set(state.entries.filter((entry) => entry.date === holiday.date).map((entry) => entry.employeeId));
-      return {holiday, missing:state.employees.filter((person) => !recorded.has(person.id)).length};
+      return {holiday, missing:state.employees.filter((person) => personEmployedOn(person, holiday.date) && !recorded.has(person.id)).length};
     }).filter((item) => item.missing);
   const total = pending.length + due.length;
   $("#taskCount").textContent = total + (total === 1 ? " asunto" : " asuntos");
@@ -703,25 +747,20 @@ function render() {
         `<tr><td data-label="Fecha">${escapeHtml(displayDate(x.date))}</td><td data-label="Colaborador">${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</td><td data-label="Empresa">${escapeHtml(employee(x)?.company || "—")}</td><td data-label="Tipo"><span class="pill ${x.type === "feriado" ? "feriado" : ""}">${x.type === "feriado" ? "Feriado" : "Ordinario"}</span></td><td data-label="Estado"><span class="tracking tracking-${escapeHtml(x.trackingState || "no_aplica")}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState] || TRACKING.no_aplica)}</span>${x.paidAt ? `<small class="status-date">Pago: ${escapeHtml(displayDate(x.paidAt))}</small>` : ""}${x.compensatoryDate ? `<small class="status-date">Día libre: ${escapeHtml(displayDate(x.compensatoryDate))}</small>` : ""}</td><td data-label="Comentarios">${escapeHtml(x.note) || '<span class="muted">—</span>'}</td><td data-label="Acciones"><div class="actions"><button class="link" data-edit="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""}>Editar</button><button class="link danger" data-delete="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""}>Eliminar</button></div></td></tr>`,
     )
     .join("");
-  const visiblePeople = state.employees.filter((person) => !teamFilter || person.company === teamFilter);
+  const visiblePeople = state.employees.filter((person) =>
+    (!teamFilter || person.company === teamFilter) &&
+    (teamStatus === "archived" ? isArchived(person) : !isArchived(person)));
   const visibleEntries = state.entries.filter((entry) => visiblePeople.some((person) => person.id === entry.employeeId));
-  $("#teamOverview").textContent = `${visiblePeople.length} colaborador${visiblePeople.length === 1 ? "" : "es"} · ${visibleEntries.length} registro${visibleEntries.length === 1 ? "" : "s"}`;
-  $("#employees").innerHTML = state.employees.length
-    ? companies.filter((company) => !teamFilter || company === teamFilter)
-        .map((company) => {
-          const members = state.employees.filter((person) => person.company === company)
-            .sort((a, b) => a.name.localeCompare(b.name, "es"));
-          return `<section class="team-group"><div class="team-header"><div><span class="team-eyebrow">EMPRESA</span><h3>${escapeHtml(company)}</h3></div><span class="team-count">${members.length} colaborador${members.length === 1 ? "" : "es"}</span></div>
-            <div class="team-list">${members.length ? members.map(renderEmployeeCard).join("") : '<p class="team-empty">Todavía no hay colaboradores en esta empresa.</p>'}</div></section>`;
-        }).join("")
-    : '<p class="empty">Agregá colaboradores para comenzar.</p>';
+  $("#teamOverview").textContent = `${visiblePeople.length} colaborador${visiblePeople.length === 1 ? "" : "es"} ${teamStatus === "archived" ? "archivados" : "activos"} · ${visibleEntries.length} registro${visibleEntries.length === 1 ? "" : "s"} conservados`;
+  $("#employees").innerHTML = companies.filter((company) => !teamFilter || company === teamFilter)
+    .map((company) => {
+      const members = visiblePeople.filter((person) => person.company === company)
+        .sort((a, b) => a.name.localeCompare(b.name, "es"));
+      return `<section class="team-group"><div class="team-header"><div><span class="team-eyebrow">EMPRESA</span><h3>${escapeHtml(company)}</h3></div><span class="team-count">${members.length} colaborador${members.length === 1 ? "" : "es"}</span></div>
+        <div class="team-list">${members.length ? members.map(renderEmployeeCard).join("") : '<p class="team-empty">No hay colaboradores en esta categoría.</p>'}</div></section>`;
+    }).join("");
   renderHolidays();
-  $("#entryForm").elements.employeeId.innerHTML = state.employees
-    .map(
-      (e) =>
-        `<option value="${escapeHtml(e.id)}">${escapeHtml(e.name)} · ${escapeHtml(e.company)}</option>`,
-    )
-    .join("");
+  renderEntryEmployeeOptions($("#entryForm").elements.date.value || localToday(), $("#entryForm").elements.employeeId.value);
   renderCalendar();
   renderMatrix();
   renderPending();
@@ -787,7 +826,7 @@ function renderCalendarDayList() {
     .sort((a, b) => (employee(a)?.company || "").localeCompare(employee(b)?.company || "", "es") ||
       (employee(a)?.name || "").localeCompare(employee(b)?.name || "", "es"));
   const recorded = new Set(entries.map((entry) => entry.employeeId));
-  const missing = state.employees.filter((person) => !recorded.has(person.id))
+  const missing = state.employees.filter((person) => personEmployedOn(person, date) && !recorded.has(person.id))
     .sort((a, b) => a.company.localeCompare(b.company, "es") || a.name.localeCompare(b.name, "es"));
   const counts = {
     todos: entries.length, trabajaron: entries.filter((entry) => WORKED_STATES.includes(entry.trackingState)).length,
@@ -848,14 +887,15 @@ function renderMatrix() {
       datesByDay.set(entry.date, "Feriado registrado");
   const dates = [...datesByDay].sort(([a], [b]) => a.localeCompare(b));
   const company = $("#matrixCompany").value;
-  const people = state.employees.filter((person) => !company || person.company === company)
+  const people = state.employees.filter((person) => (!company || person.company === company) &&
+    (dates.some(([date]) => personEmployedOn(person, date)) || state.entries.some((entry) => entry.employeeId === person.id && entry.date.startsWith(`${year}-`))))
     .sort((a,b) => a.company.localeCompare(b.company,"es") || a.name.localeCompare(b.name,"es"));
   $("#matrixEmpty").hidden = dates.length > 0 && people.length > 0;
   $("#matrixEmpty").textContent = dates.length === 0
     ? "No hay feriados ni registros para este año."
     : "No hay colaboradores en la empresa seleccionada.";
   $("#matrixHead").innerHTML = `<tr><th>Colaborador</th>${dates.map(([date, name]) => `<th title="${escapeHtml(name)}">${escapeHtml(displayDate(date).slice(0, 5))}<small>${escapeHtml(name)}</small></th>`).join("")}</tr>`;
-  $("#matrixBody").innerHTML = people.map((person) => `<tr><th scope="row"><strong>${escapeHtml(person.name)}</strong><small>${escapeHtml(person.company)}</small></th>${dates.map(([date]) => { const entry = state.entries.find((x) => x.employeeId === person.id && x.date === date); return `<td>${entry ? `<span class="tracking tracking-${escapeHtml(entry.trackingState)}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[entry.trackingState])}</span>` : '<span class="muted">—</span>'}</td>`; }).join("")}</tr>`).join("");
+  $("#matrixBody").innerHTML = people.map((person) => `<tr><th scope="row"><strong>${escapeHtml(person.name)}</strong><small>${escapeHtml(person.company)}</small></th>${dates.map(([date]) => { const entry = state.entries.find((x) => x.employeeId === person.id && x.date === date); return `<td>${entry ? `<span class="tracking tracking-${escapeHtml(entry.trackingState)}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[entry.trackingState])}</span>` : personEmployedOn(person, date) ? '<span class="muted">—</span>' : '<span class="muted" title="Fuera del período laboral">Fuera</span>'}</td>`; }).join("")}</tr>`).join("");
 }
 function renderPending() {
   const entries = state.entries.filter((x) => PENDING_STATES.includes(x.trackingState)).sort((a,b) => a.date.localeCompare(b.date));
@@ -936,6 +976,18 @@ function renderReports() {
     ? "Se muestran los registros pendientes de revisión, pago o día libre hasta la fecha de corte."
     : "Los estados reflejan la información actual de los registros.";
 }
+function renderEntryEmployeeOptions(date, preferred) {
+  const select = $("#entryForm").elements.employeeId;
+  const selected = preferred || select.value;
+  const people = state.employees.filter((person) =>
+    (personEmployedOn(person, date) && (!isArchived(person) || date < localToday())) ||
+    person.id === selected && !!editing)
+    .sort((a,b) => a.company.localeCompare(b.company, "es") || a.name.localeCompare(b.name, "es"));
+  select.innerHTML = people.length ? people.map((person) =>
+    `<option value="${escapeHtml(person.id)}">${escapeHtml(person.name)} · ${escapeHtml(person.company)}</option>`).join("")
+    : '<option value="">No hay colaboradores para esta fecha</option>';
+  if (people.some((person) => person.id === selected)) select.value = selected;
+}
 function updateEntryWarning() {
   const form = $("#entryForm");
   const match = state.entries.find((entry) => entry.employeeId === form.elements.employeeId.value &&
@@ -952,7 +1004,10 @@ function updateEntryWarning() {
   });
 }
 for (const field of ["employeeId", "date", "paidAt"]) {
-  $("#entryForm").elements[field].addEventListener(field === "date" || field === "paidAt" ? "input" : "change", updateEntryWarning);
+  $("#entryForm").elements[field].addEventListener(field === "date" || field === "paidAt" ? "input" : "change", () => {
+    if (field === "date") renderEntryEmployeeOptions($("#entryForm").elements.date.value);
+    updateEntryWarning();
+  });
 }
 function updateEntryStatusFields() {
   const status = $("#entryForm").elements.trackingState.value;
@@ -974,9 +1029,11 @@ function openEntry(x, selectedDate) {
     return;
   }
   editing = x?.id || null;
+  entryRevision = window.jornadasCloud?.revisionToken?.();
   const f = $("#entryForm");
   f.reset();
-  f.elements.date.value = x?.date || selectedDate || new Date().toLocaleDateString("en-CA");
+  f.elements.date.value = x?.date || selectedDate || localToday();
+  renderEntryEmployeeOptions(f.elements.date.value, x?.employeeId);
   if (x) {
     for (const k of ["employeeId", "date", "type", "note"])
       f.elements[k].value = x[k] ?? "";
@@ -1025,10 +1082,15 @@ $("#closeDialog").onclick = $("#cancelDialog").onclick = () =>
   $("#entryDialog").close();
 $("#entryForm").onsubmit = (e) => {
   e.preventDefault();
+  if (!formIsCurrent(entryRevision)) return;
   const f = e.currentTarget,
     v = Object.fromEntries(new FormData(f));
-  if (!state.employees.some((x) => x.id === v.employeeId))
-    return alert("Seleccioná un colaborador válido.");
+  const selectedPerson = state.employees.find((x) => x.id === v.employeeId);
+  if (!selectedPerson) return alert("Seleccioná un colaborador válido.");
+  const originalRecord = state.entries.find((item) => item.id === editing);
+  if (!personEmployedOn(selectedPerson, v.date) &&
+      !(originalRecord?.employeeId === v.employeeId && originalRecord.date === v.date))
+    return alert("La fecha está fuera del período laboral de este colaborador. Revisá su fecha de ingreso o salida.");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v.date))
     return alert("Ingresá una fecha válida.");
   if (!Object.hasOwn(TRACKING, v.trackingState))
@@ -1062,16 +1124,19 @@ $("#entryForm").onsubmit = (e) => {
     state.entries = state.entries.map((x) => (x.id === editing ? record : x));
   else state.entries.push(record);
   $("#entryDialog").close();
-  save();
+  save({confirmation: `${selectedPerson.name} · ${displayDate(v.date)} · ${TRACKING[v.trackingState]}`});
 };
 function openEmployee(e) {
   editingEmployee = e?.id || null;
+  employeeRevision = window.jornadasCloud?.revisionToken?.();
   const f = $("#employeeForm");
   f.reset();
   if (e) {
     f.elements.name.value = e.name;
     f.elements.company.value = e.company;
-  }
+    f.elements.startDate.value = e.startDate || "";
+    f.elements.endDate.value = e.endDate || "";
+  } else f.elements.startDate.value = localToday();
   $("#employeeDialogTitle").textContent = e
     ? "Editar colaborador"
     : "Agregar colaborador";
@@ -1083,9 +1148,14 @@ $("#closeEmployeeDialog").onclick = $("#cancelEmployeeDialog").onclick = () =>
   $("#employeeDialog").close();
 $("#employeeForm").onsubmit = (event) => {
   event.preventDefault();
+  if (!formIsCurrent(employeeRevision)) return;
   const f = event.currentTarget,
     name = f.elements.name.value.trim().replace(/\s+/g, " "),
-    company = f.elements.company.value;
+    company = f.elements.company.value,
+    startDate = f.elements.startDate.value,
+    endDate = f.elements.endDate.value;
+  if (startDate && !validISODate(startDate) || endDate && !validISODate(endDate)) return alert("Revisá las fechas de ingreso y salida.");
+  if (startDate && endDate && endDate < startDate) return alert("La fecha de salida debe ser posterior o igual a la fecha de ingreso.");
   if (!name) return alert("Ingresá el nombre.");
   if (!companies.includes(company)) return alert("Seleccioná una empresa.");
   if (
@@ -1098,21 +1168,25 @@ $("#employeeForm").onsubmit = (event) => {
   )
     return alert("Ya existe ese colaborador en esa empresa.");
   if (editingEmployee) {
-    if (!ensureOpen(...state.entries.filter((entry) => entry.employeeId === editingEmployee).map((entry) => entry.date))) return;
     const e = state.employees.find((x) => x.id === editingEmployee);
     if (!e) return alert("No se encontró el colaborador.");
+    const outside = state.entries.find((entry) => entry.employeeId === e.id &&
+      (startDate && entry.date < startDate || endDate && entry.date > endDate));
+    if (outside) return alert(`Hay un registro del ${displayDate(outside.date)} fuera de estas fechas laborales. Corregí las fechas antes de guardar.`);
     e.name = name;
     e.company = company;
-  } else state.employees.push({ id: id(), name, company });
+    e.startDate = startDate;
+    e.endDate = endDate;
+  } else state.employees.push({ id: id(), name, company, startDate, endDate });
   $("#employeeDialog").close();
-  save();
+  save({confirmation: `${name} · ${editingEmployee ? "ficha actualizada" : "colaborador agregado"}`});
 };
 const bulkDraft = new Map();
 let bulkDate = "";
 function renderBulkRows() {
   const date = $("#bulkHoliday").value;
   const company = $("#bulkCompany").value;
-  const people = state.employees.filter((person) => !company || person.company === company)
+  const people = state.employees.filter((person) => personEmployedOn(person, date) && (!company || person.company === company))
     .sort((a, b) => a.company.localeCompare(b.company, "es") || a.name.localeCompare(b.name, "es"));
   const registered = people.filter((person) =>
     state.entries.some((entry) => entry.date === date && entry.employeeId === person.id)).length;
@@ -1146,7 +1220,7 @@ function renderBulkRows() {
 function collectBulkChanges(date) {
   const changes = [];
   for (const [employeeId, draft] of bulkDraft) {
-    if (!state.employees.some((person) => person.id === employeeId)) continue;
+    if (!state.employees.some((person) => person.id === employeeId && personEmployedOn(person, date))) continue;
     const note = draft.note.trim();
     const existing = state.entries.find((entry) => entry.date === date && entry.employeeId === employeeId);
     if (!draft.status || !Object.hasOwn(TRACKING, draft.status)) continue;
@@ -1161,6 +1235,7 @@ function collectBulkChanges(date) {
 }
 function openBulk(preferredDate) {
   if (preferredDate && !ensureOpen(preferredDate)) return;
+  bulkRevision = window.jornadasCloud?.revisionToken?.();
   if (!state.employees.length) return alert("Primero agregá al menos un colaborador.");
   const holidays = state.holidays.filter((holiday) => !isClosed(holiday.date))
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -1214,6 +1289,7 @@ $("#bulkDialog").addEventListener("click", (event) => {
 });
 $("#bulkForm").onsubmit = (event) => {
   event.preventDefault();
+  if (!formIsCurrent(bulkRevision)) return;
   const date = $("#bulkHoliday").value;
   if (!state.holidays.some((holiday) => holiday.date === date))
     return alert("Seleccioná un feriado válido.");
@@ -1243,10 +1319,11 @@ $("#bulkForm").onsubmit = (event) => {
   $("#month").value = date.slice(0, 7);
   $("#holidayYear").value = date.slice(0, 4);
   $("#bulkDialog").close();
-  save();
+  save({confirmation: `${changes.length} registro${changes.length === 1 ? "" : "s"} del ${displayDate(date)} actualizados`});
 };
 function openHoliday(holiday) {
   if (!ensureOpen(holiday?.date)) return;
+  holidayRevision = window.jornadasCloud?.revisionToken?.();
   editingHoliday = holiday?.id || null;
   const form = $("#holidayForm");
   form.reset();
@@ -1260,6 +1337,7 @@ $("#addHoliday").onclick = () => openHoliday();
 $("#closeHolidayDialog").onclick = $("#cancelHolidayDialog").onclick = () => $("#holidayDialog").close();
 $("#holidayForm").onsubmit = (event) => {
   event.preventDefault();
+  if (!formIsCurrent(holidayRevision)) return;
   const form = event.currentTarget;
   const name = form.elements.name.value.trim().replace(/\s+/g, " ");
   const date = form.elements.date.value;
@@ -1275,8 +1353,16 @@ $("#holidayForm").onsubmit = (event) => {
   else state.holidays.push(holiday);
   $("#holidayYear").value = date.slice(0, 4);
   $("#holidayDialog").close();
-  save();
+  save({confirmation: `${name} · ${displayDate(date)} · feriado guardado`});
 };
+document.querySelectorAll("[data-team-status]").forEach((button) => button.onclick = () => {
+  teamStatus = button.dataset.teamStatus;
+  document.querySelectorAll("[data-team-status]").forEach((item) => {
+    item.classList.toggle("active", item === button);
+    item.setAttribute("aria-pressed", String(item === button));
+  });
+  render();
+});
 document.querySelectorAll("[data-team-filter]").forEach(
   (button) =>
     (button.onclick = () => {
@@ -1331,19 +1417,21 @@ document.addEventListener("click", (e) => {
     save();
   }
   if (remove) {
-    const x = state.employees.find(
-        (z) => z.id === remove.dataset.removeEmployee,
-      ),
-      n = state.entries.filter((z) => z.employeeId === x.id).length;
-    if (!ensureOpen(...state.entries.filter((z) => z.employeeId === x.id).map((z) => z.date))) return;
-    if (
-      confirm(
-        `¿Eliminar a ${x.name}? También se eliminarán sus ${n} registros. Esta acción no se puede deshacer.`,
-      )
-    ) {
-      state.employees = state.employees.filter((z) => z.id !== x.id);
-      state.entries = state.entries.filter((z) => z.employeeId !== x.id);
-      save();
+    const x = state.employees.find((person) => person.id === remove.dataset.removeEmployee);
+    if (!x) return;
+    if (isArchived(x)) {
+      if (!confirm(`¿Reactivar a ${x.name}? Volverá a la lista de colaboradores activos.`)) return;
+      x.archivedAt = "";
+      x.endDate = "";
+      save({confirmation: `${x.name} reactivado. Sus registros permanecen disponibles.`});
+    } else {
+      const count = state.entries.filter((entry) => entry.employeeId === x.id).length;
+      const future = state.entries.find((entry) => entry.employeeId === x.id && entry.date > localToday());
+      if (future) return alert(`Hay un registro futuro del ${displayDate(future.date)}. Revisalo antes de archivar a ${x.name}.`);
+      if (!confirm(`¿Archivar a ${x.name}? Sus ${count} registros se conservarán y podrás reactivarlo después.`)) return;
+      x.archivedAt = new Date().toISOString();
+      if (!x.endDate || x.endDate > localToday()) x.endDate = localToday();
+      save({confirmation: `${x.name} archivado. Se conservaron sus ${count} registros.`});
     }
   }
 });
@@ -1544,7 +1632,10 @@ $("#importBackupFile").addEventListener("change", async (event) => {
       let existing = candidate.employees.find((person) =>
         normalize(person.name) === normalize(name) && person.company === company);
       if (!existing) {
-        existing = {id:id(), name, company};
+        existing = {id:id(), name, company,
+          startDate: validISODate(incoming.startDate) ? incoming.startDate : "",
+          endDate: validISODate(incoming.endDate) ? incoming.endDate : "",
+          archivedAt: typeof incoming.archivedAt === "string" && !Number.isNaN(Date.parse(incoming.archivedAt)) ? incoming.archivedAt : ""};
         candidate.employees.push(existing);
         peopleAdded++;
       }
