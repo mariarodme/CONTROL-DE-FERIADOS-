@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
     <title>Control de Feriados · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260928-4" />
+    <link rel="stylesheet" href="styles.css?v=20260928-5" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -107,6 +107,10 @@
             <div class="section-actions"><label class="field compact"
               >Mes <input id="month" type="month"
             /></label><button class="primary" id="newEntry" type="button">+ Nuevo registro</button></div>
+          </div>
+          <div class="period-lock" id="periodLock" role="status" aria-live="polite">
+            <div><strong id="periodLockTitle">Período abierto</strong><p id="periodLockDetail">Podés cerrar este mes cuando termines la revisión.</p></div>
+            <button type="button" class="secondary" id="periodLockAction">Cerrar mes</button>
           </div>
           <a class="sync-summary" id="syncSummary" href="#configuracion">Datos guardados solo en este dispositivo · Ver configuración</a>
           <div class="cards">
@@ -265,7 +269,7 @@
           <div class="history-filters">
             <label class="field">Buscar <input id="historySearch" type="search" placeholder="Colaborador, feriado o detalle" /></label>
             <label class="field">Tipo de cambio
-              <select id="historyType"><option value="">Todos</option><option value="registro">Registros</option><option value="feriado">Feriados</option><option value="colaborador">Colaboradores</option><option value="respaldo">Importaciones</option></select>
+              <select id="historyType"><option value="">Todos</option><option value="registro">Registros</option><option value="feriado">Feriados</option><option value="colaborador">Colaboradores</option><option value="respaldo">Importaciones</option><option value="cierre">Cierres mensuales</option></select>
             </label>
           </div>
           <div class="history-list" id="historyList"></div>
@@ -498,8 +502,8 @@
       </form>
     </dialog>
     <script src="firebase-config.js?v=20260927-3"></script>
-    <script src="cloud.js?v=20260928-4"></script>
+    <script src="cloud.js?v=20260928-5"></script>
     <script src="xlsx.js?v=20260927-18"></script>
-    <script src="app.js?v=20260928-4"></script>
+    <script src="app.js?v=20260928-5"></script>
   </body>
 </html>
