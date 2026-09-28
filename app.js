@@ -426,7 +426,9 @@ function filters() {
         (!$("#typeFilter").value || x.type === $("#typeFilter").value) &&
         (!$("#holidayFilter").value || x.date === $("#holidayFilter").value) &&
         (!$("#trackingFilter").value ||
-          x.trackingState === $("#trackingFilter").value)
+          ($("#trackingFilter").value === "pending_all"
+            ? PENDING_STATES.includes(x.trackingState)
+            : x.trackingState === $("#trackingFilter").value))
       );
     })
     .sort(
@@ -438,6 +440,79 @@ function filters() {
         ),
     );
 }
+const FILTER_PRESETS_KEY = "jaco-jornadas-filtros-v1";
+function savedPresets() {
+  try {
+    const items = JSON.parse(localStorage.getItem(FILTER_PRESETS_KEY) || "[]");
+    return Array.isArray(items) ? items.filter((item) => item && typeof item.name === "string" && item.filters && typeof item.filters === "object").slice(0, 20) : [];
+  } catch { return []; }
+}
+function renderSavedPresets() {
+  const select = $("#savedPreset");
+  const selected = select.value;
+  select.innerHTML = '<option value="">Seleccioná uno</option>' +
+    savedPresets().map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("");
+  select.value = savedPresets().some((item) => item.id === selected) ? selected : "";
+}
+function currentFilters() {
+  return {month:$("#month").value, search:$("#search").value, company:$("#companyFilter").value,
+    type:$("#typeFilter").value, holiday:$("#holidayFilter").value, tracking:$("#trackingFilter").value};
+}
+function applyFilters(selection) {
+  const values = selection || {};
+  $("#month").value = /^\d{4}-\d{2}$/.test(values.month || "") ? values.month : new Date().toLocaleDateString("en-CA").slice(0, 7);
+  $("#search").value = typeof values.search === "string" ? values.search : "";
+  $("#companyFilter").value = companies.includes(values.company) ? values.company : "";
+  $("#typeFilter").value = ["feriado","ordinario"].includes(values.type) ? values.type : "";
+  renderHolidayFilter();
+  const date = typeof values.holiday === "string" ? values.holiday : "";
+  $("#holidayFilter").value = state.holidays.some((holiday) => holiday.date === date && date.startsWith($("#month").value)) ? date : "";
+  const tracking = typeof values.tracking === "string" ? values.tracking : "";
+  $("#trackingFilter").value = tracking === "pending_all" || Object.hasOwn(TRACKING, tracking) ? tracking : "";
+  render();
+}
+$("#savePreset").onclick = () => {
+  const name = $("#presetName").value.trim().replace(/\s+/g," ").slice(0,40);
+  if (!name) return $("#presetStatus").textContent = "Escribí un nombre para guardar este filtro.";
+  const items = savedPresets();
+  const existing = items.find((item) => normalize(item.name) === normalize(name));
+  if (items.length >= 20 && !existing) return $("#presetStatus").textContent = "Podés guardar hasta 20 filtros. Eliminá uno para agregar otro.";
+  const item = {id:existing?.id || id(), name, filters:currentFilters()};
+  const next = existing ? items.map((saved) => saved.id === existing.id ? item : saved) : [...items,item];
+  try { localStorage.setItem(FILTER_PRESETS_KEY, JSON.stringify(next)); } catch {
+    return $("#presetStatus").textContent = "No se pudo guardar en este navegador.";
+  }
+  renderSavedPresets();
+  $("#savedPreset").value = item.id;
+  $("#presetStatus").textContent = `Filtro «${name}» guardado en este navegador.`;
+};
+$("#applyPreset").onclick = () => {
+  const item = savedPresets().find((saved) => saved.id === $("#savedPreset").value);
+  if (!item) return $("#presetStatus").textContent = "Seleccioná un filtro guardado.";
+  applyFilters(item.filters);
+  $("#presetStatus").textContent = `Filtro «${item.name}» aplicado.`;
+};
+$("#deletePreset").onclick = () => {
+  const item = savedPresets().find((saved) => saved.id === $("#savedPreset").value);
+  if (!item) return $("#presetStatus").textContent = "Seleccioná un filtro guardado.";
+  if (!confirm(`¿Eliminar el filtro «${item.name}»?`)) return;
+  try { localStorage.setItem(FILTER_PRESETS_KEY, JSON.stringify(savedPresets().filter((saved) => saved.id !== item.id))); } catch {
+    return $("#presetStatus").textContent = "No se pudo eliminar en este navegador.";
+  }
+  renderSavedPresets();
+  $("#presetStatus").textContent = `Filtro «${item.name}» eliminado.`;
+};
+document.querySelectorAll("[data-quick-filter]").forEach((button) => button.onclick = () => {
+  const key = button.dataset.quickFilter;
+  applyFilters({month:$("#month").value, company:key === "monte" ? companies[0] : "",
+    tracking:key === "payment" ? "pago_pendiente" : key === "free" ? "libre_pendiente" : "pending_all"});
+  $("#presetStatus").textContent = "Filtro rápido aplicado al mes seleccionado.";
+});
+$("#clearFilters").onclick = () => {
+  applyFilters({month:$("#month").value});
+  $("#presetStatus").textContent = "Filtros limpiados.";
+};
+renderSavedPresets();
 function renderHolidayFilter() {
   const select = $("#holidayFilter");
   const selected = select.value;
@@ -469,6 +544,7 @@ function renderEmployeeCard(person) {
 }
 function renderPersonProfile() {
   const person = state.employees.find((item) => item.id === activePersonId);
+  $("#downloadPerson").disabled = $("#printPerson").disabled = !person;
   if (!person) {
     $("#personTitle").textContent = "Elegí un colaborador";
     $("#personCompany").textContent = "";
@@ -508,6 +584,35 @@ function renderPersonProfile() {
     </article>`).join("") : '<p class="empty">No hay registros para este año.</p>';
 }
 $("#personYear").addEventListener("change", renderPersonProfile);
+$("#downloadPerson").onclick = () => {
+  const person = state.employees.find((item) => item.id === activePersonId);
+  if (!person) return;
+  const year = $("#personYear").value;
+  const names = new Map(state.holidays.map((holiday) => [holiday.date, holiday.name]));
+  const records = state.entries.filter((entry) => entry.employeeId === person.id && (!year || entry.date.startsWith(year)))
+    .sort((a,b) => a.date.localeCompare(b.date));
+  const headings = ["Fecha", "Feriado / día", "Empresa", "Tipo de día", "Estado", "Fecha de pago", "Día libre disfrutado", "Comentarios"];
+  const rows = records.map((entry) => [
+    entry.date, names.get(entry.date) || (entry.type === "feriado" ? "Feriado registrado" : "Día ordinario"),
+    person.company, entry.type === "feriado" ? "Feriado" : "Ordinario",
+    TRACKING[entry.trackingState] || TRACKING.no_aplica, entry.paidAt || "", entry.compensatoryDate || "", entry.note || "",
+  ]);
+  try {
+    download(`ficha-${normalize(person.name).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}-${year || "todos-los-anos"}.xlsx`,
+      window.makeReportWorkbook({title:"Ficha de " + person.name,
+        period:year ? "Año " + year : "Todos los años", company:person.company,
+        headings, rows}), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    $("#personDownloadStatus").textContent = "Ficha Excel preparada para descargar.";
+  } catch {
+    $("#personDownloadStatus").textContent = "No se pudo preparar la ficha. Volvé a cargar la página.";
+  }
+};
+$("#printPerson").onclick = () => {
+  if (!state.employees.some((item) => item.id === activePersonId)) return;
+  document.body.dataset.printProfile = "true";
+  window.print();
+};
+window.addEventListener("afterprint", () => { delete document.body.dataset.printProfile; });
 function openPersonProfile(personId) {
   if (!state.employees.some((person) => person.id === personId)) return;
   activePersonId = personId;
@@ -546,10 +651,35 @@ function renderHistory() {
 }
 $("#historySearch").addEventListener("input", renderHistory);
 $("#historyType").addEventListener("change", renderHistory);
+function renderTasks(month) {
+  const pending = state.entries.filter((entry) => entry.date.startsWith(month) && PENDING_STATES.includes(entry.trackingState))
+    .sort((a,b) => a.date.localeCompare(b.date) || (employee(a)?.name || "").localeCompare(employee(b)?.name || "", "es"));
+  const today = new Date().toLocaleDateString("en-CA");
+  const due = state.holidays.filter((holiday) => holiday.date.startsWith(month) && holiday.date <= today)
+    .sort((a,b) => a.date.localeCompare(b.date))
+    .map((holiday) => {
+      const recorded = new Set(state.entries.filter((entry) => entry.date === holiday.date).map((entry) => entry.employeeId));
+      return {holiday, missing:state.employees.filter((person) => !recorded.has(person.id)).length};
+    }).filter((item) => item.missing);
+  const total = pending.length + due.length;
+  $("#taskCount").textContent = total + (total === 1 ? " asunto" : " asuntos");
+  $("#taskIntro").textContent = `${pending.length} registro${pending.length === 1 ? "" : "s"} pendiente${pending.length === 1 ? "" : "s"} · ${due.length} feriado${due.length === 1 ? "" : "s"} con personas sin registrar`;
+  $("#taskList").innerHTML = total ? [
+    ...pending.map((entry) => `<div class="task-row"><div><strong>${escapeHtml(TRACKING[entry.trackingState])}</strong><small>${escapeHtml(employee(entry)?.name || "Colaborador eliminado")} · ${escapeHtml(displayDate(entry.date))}</small></div><button type="button" class="secondary" data-task-edit="${escapeHtml(entry.id)}" ${isClosed(entry.date) ? 'disabled title="Período cerrado"' : ""}>Revisar</button></div>`),
+    ...due.map(({holiday,missing}) => `<div class="task-row"><div><strong>${escapeHtml(holiday.name)} · ${missing} sin registro</strong><small>${escapeHtml(displayDate(holiday.date))} · Revisá quién falta</small></div><button type="button" class="secondary" data-task-date="${escapeHtml(holiday.date)}">Ver feriado</button></div>`)
+  ].join("") : '<p class="task-empty">No hay asuntos por resolver en este mes.</p>';
+}
+document.addEventListener("click", (event) => {
+  const edit = event.target.closest("[data-task-edit]");
+  const day = event.target.closest("[data-task-date]");
+  if (edit) { const entry = state.entries.find((item) => item.id === edit.dataset.taskEdit); if (entry) openEntry(entry); }
+  if (day) openCalendarDay(day.dataset.taskDate);
+});
 function render() {
   const month = $("#month").value,
     period = state.entries.filter((x) => !month || x.date.startsWith(month));
   renderPeriodLock();
+  renderTasks(month);
   $("#controlMonth").value = month;
   renderHolidayFilter();
   for (const [elementId, value] of [
@@ -806,6 +936,24 @@ function renderReports() {
     ? "Se muestran los registros pendientes de revisión, pago o día libre hasta la fecha de corte."
     : "Los estados reflejan la información actual de los registros.";
 }
+function updateEntryWarning() {
+  const form = $("#entryForm");
+  const match = state.entries.find((entry) => entry.employeeId === form.elements.employeeId.value &&
+    entry.date === form.elements.date.value && entry.id !== editing);
+  const missingPayment = form.elements.trackingState.value === "pagado" && !form.elements.paidAt.value;
+  const warnings = [];
+  if (match) warnings.push('Ya hay un registro para este colaborador en esta fecha. <button type="button" class="link" id="editExistingEntry">Abrir el existente</button>');
+  if (missingPayment) warnings.push("Falta indicar la fecha real de pago.");
+  $("#entryWarning").innerHTML = warnings.join("<br>");
+  $("#entryWarning").hidden = !warnings.length;
+  $("#editExistingEntry")?.addEventListener("click", () => {
+    $("#entryDialog").close();
+    openEntry(match);
+  });
+}
+for (const field of ["employeeId", "date", "paidAt"]) {
+  $("#entryForm").elements[field].addEventListener(field === "date" || field === "paidAt" ? "input" : "change", updateEntryWarning);
+}
 function updateEntryStatusFields() {
   const status = $("#entryForm").elements.trackingState.value;
   $("#paidAtWrap").hidden = status !== "pagado";
@@ -816,6 +964,7 @@ function updateEntryStatusFields() {
     pagado: "Trabajó el feriado y recibió el pago. Anotá la fecha si la conocés.",
     no_laboro: "No trabajó este feriado.",
   }[status] || "";
+  updateEntryWarning();
 }
 $("#entryForm").elements.trackingState.addEventListener("change", updateEntryStatusFields);
 function openEntry(x, selectedDate) {
@@ -884,6 +1033,8 @@ $("#entryForm").onsubmit = (e) => {
     return alert("Ingresá una fecha válida.");
   if (!Object.hasOwn(TRACKING, v.trackingState))
     return alert("Seleccioná un estado válido.");
+  if (v.trackingState === "pagado" && !v.paidAt &&
+      !confirm("Este registro quedará como pagado sin fecha de pago. ¿Querés guardarlo así?")) return;
   if (v.paidAt && !validISODate(v.paidAt)) return alert("Revisá la fecha de pago.");
   if (v.compensatoryDate && !validISODate(v.compensatoryDate)) return alert("Revisá la fecha del día libre.");
   const original = state.entries.find((item) => item.id === editing);
@@ -1074,6 +1225,8 @@ $("#bulkForm").onsubmit = (event) => {
   if (changes.some((change) => change.paidAt && !validISODate(change.paidAt) ||
       change.compensatoryDate && !validISODate(change.compensatoryDate)))
     return alert("Revisá las fechas de pago o día libre.");
+  const missingPayment = changes.filter((change) => change.status === "pagado" && !change.paidAt);
+  if (missingPayment.length && !confirm(`${missingPayment.length} registro(s) quedarán como pagados sin fecha de pago. ¿Querés guardarlos así?`)) return;
   for (const change of changes) {
     if (change.existing) {
       change.existing.trackingState = change.status;
