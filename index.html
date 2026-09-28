@@ -352,6 +352,7 @@
               <button type="button" class="secondary" id="importBackup">Importar / combinar respaldo</button>
               <input type="file" id="importBackupFile" accept="application/json,.json" hidden />
               <p class="settings-status" id="importStatus" role="status" aria-live="polite"></p>
+              <div class="local-backups"><h4>Copias locales recientes</h4><p>La página guarda hasta cuatro versiones anteriores en este navegador. Podés descargarlas como JSON e importarlas si necesitás recuperar registros.</p><p id="backupCount" role="status"></p><ul id="backupList"></ul><small>Estas copias no reemplazan el respaldo descargado ni se sincronizan entre dispositivos.</small></div>
               <p>El mes seleccionado en Dashboard o Control General también controla Calendario. Pendientes muestra todos los meses.</p>
               <a class="button-link" href="#inicio">Volver al inicio</a>
             </div>
@@ -511,6 +512,6 @@
     <script src="firebase-config.js?v=20260927-3"></script>
     <script src="cloud.js?v=20260928-6"></script>
     <script src="xlsx.js?v=20260927-18"></script>
-    <script src="app.js?v=20260928-7"></script>
+    <script src="app.js?v=20260928-8"></script>
   </body>
 </html>
