@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
     <title>Control de Feriados · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260928-11" />
+    <link rel="stylesheet" href="styles.css?v=20260928-12" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -105,6 +105,7 @@
             <label class="field compact">Año <select id="personYear" aria-label="Año de la ficha"><option value="">Todos los años</option></select></label></div>
           <div class="profile-stats" id="personSummary"></div>
           <div class="profile-records" id="personRecords"></div>
+          <div class="profile-download"><button type="button" class="secondary" id="downloadPerson">Descargar ficha en Excel</button><button type="button" class="secondary" id="printPerson">Imprimir / PDF</button><span id="personDownloadStatus" role="status" aria-live="polite"></span></div>
         </section>
         <section id="resumen">
           <div class="section-heading">
@@ -141,6 +142,7 @@
             <a class="card summary-card" href="#registro" data-summary-state="libre_pendiente"><span>Día libre pendiente</span><strong id="freePending">0</strong><small>Ver registros del mes →</small></a>
             <a class="card summary-card" href="#registro" data-summary-state="libre_disfrutado"><span>Día libre disfrutado</span><strong id="freeEnjoyed">0</strong><small>Ver registros del mes →</small></a>
           </div>
+          <div class="task-panel panel"><div class="task-header"><div><h3>Por resolver</h3><p id="taskIntro">Tareas del mes seleccionado</p></div><span id="taskCount" class="count"></span></div><div id="taskList" class="task-list"></div></div>
         </section>
         <section id="calendario">
           <div class="section-heading"><div><h2>Calendario</h2><p class="section-intro">Feriados y registros del mes seleccionado.</p></div><div class="calendar-controls"><button type="button" class="secondary" id="previousMonth" aria-label="Mes anterior">‹</button><strong id="calendarTitle"></strong><button type="button" class="secondary" id="nextMonth" aria-label="Mes siguiente">›</button></div></div>
@@ -186,6 +188,7 @@
                 >Estado
                 <select id="trackingFilter">
                   <option value="">Todos</option>
+                  <option value="pending_all">Todos los pendientes</option>
                   <option value="pendiente">Pendiente</option>
                   <option value="disfrutado">Disfrutado</option>
                   <option value="pago_pendiente">
@@ -199,6 +202,7 @@
                 </select></label
               >
             </div>
+            <div class="saved-filters"><div class="quick-filters" aria-label="Filtros rápidos"><button type="button" class="secondary" data-quick-filter="payment">Pagos pendientes</button><button type="button" class="secondary" data-quick-filter="free">Días libres pendientes</button><button type="button" class="secondary" data-quick-filter="monte">Pendientes Monte Carlo</button><button type="button" class="link" id="clearFilters">Limpiar filtros</button></div><div class="preset-controls"><label class="field">Nombre de la vista<input id="presetName" maxlength="40" placeholder="Ej.: pagos de septiembre" /></label><button type="button" class="secondary" id="savePreset">Guardar filtro</button><label class="field">Filtros guardados<select id="savedPreset"><option value="">Seleccioná uno</option></select></label><button type="button" class="secondary" id="applyPreset">Aplicar</button><button type="button" class="link danger" id="deletePreset">Eliminar</button></div><p id="presetStatus" role="status" aria-live="polite"></p></div>
             <div class="table-wrap">
               <table>
                 <thead>
@@ -515,6 +519,7 @@
             <input type="date" name="compensatoryDate" />
           </label>
           <p class="entry-status-help field full" id="entryStatusHelp"></p>
+          <div class="entry-alert field full" id="entryWarning" role="status" aria-live="polite" hidden></div>
           <label class="field full"
             >Comentarios (opcional)
             <textarea
@@ -534,7 +539,7 @@
     </dialog>
     <script src="firebase-config.js?v=20260927-3"></script>
     <script src="cloud.js?v=20260928-9"></script>
-    <script src="xlsx.js?v=20260928-11"></script>
-    <script src="app.js?v=20260928-11"></script>
+    <script src="xlsx.js?v=20260928-12"></script>
+    <script src="app.js?v=20260928-12"></script>
   </body>
 </html>
