@@ -584,3 +584,14 @@ body[data-theme="azul"] .history-item,body[data-theme="claro"] .history-item{bac
 body[data-text-size] .history-item h4{font-size:calc(var(--subtitle-size) * .7)}
 body[data-text-size] .history-diff p{font-size:calc(var(--body-size) * .8)}
 @media(max-width:650px){.history-filters{grid-template-columns:1fr}.history-item{padding:16px}.history-diff{grid-template-columns:1fr}}
+
+.period-lock { display:flex; align-items:center; justify-content:space-between; gap:1.25rem; padding:1rem 1.25rem; margin:0 0 1rem; border:1px solid #d6d9cd; border-radius:14px; background:#f8f8f3; }
+.period-lock strong { font-weight:700; color:#26362e; }
+.period-lock p { margin:.3rem 0 0; color:#65716b; line-height:1.45; }
+.period-lock.is-closed { border-color:#a7baa7; background:#edf2eb; }
+.period-lock.is-closed strong::before { content:"●"; color:#58775e; margin-right:.5rem; }
+.period-lock button { flex:none; }
+.history-kind-cierre { background:#e7eee6; color:#35553a; }
+@media (max-width: 600px) { .period-lock { align-items:stretch; flex-direction:column; } .period-lock button { width:100%; } }
+
+button:disabled { cursor:not-allowed; opacity:.5; }
