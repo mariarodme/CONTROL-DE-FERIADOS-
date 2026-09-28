@@ -148,6 +148,47 @@ function businessSnapshot(data) {
   }));
 }
 let lastBusinessSnapshot = businessSnapshot(state);
+let lastSavedState = structuredClone(state);
+const BACKUPS_KEY = "jaco-jornadas-copias-locales";
+function recentBackups() {
+  try {
+    const items = JSON.parse(localStorage.getItem(BACKUPS_KEY) || "[]");
+    return Array.isArray(items) ? items.filter((item) => item && typeof item.at === "string" &&
+      typeof item.data === "string" && typeof item.id === "string").slice(0, 4) : [];
+  } catch { return []; }
+}
+function renderBackups() {
+  const items = recentBackups();
+  $("#backupCount").textContent = items.length
+    ? `${items.length} copia${items.length === 1 ? "" : "s"} reciente${items.length === 1 ? "" : "s"} en este navegador.`
+    : "Todavía no hay copias automáticas en este navegador.";
+  $("#backupList").innerHTML = items.map((item) => {
+    const date = new Date(item.at);
+    const label = Number.isNaN(date.valueOf()) ? "Fecha desconocida" :
+      new Intl.DateTimeFormat("es-CR", {dateStyle:"medium", timeStyle:"short", timeZone:"America/Costa_Rica"}).format(date);
+    return `<li><div><strong>${escapeHtml(label)}</strong><small>${escapeHtml(item.label || "Antes de guardar cambios")}</small></div>
+      <button type="button" class="secondary" data-local-backup="${escapeHtml(item.id)}">Descargar copia</button></li>`;
+  }).join("");
+}
+function keepBackup(previous, label) {
+  const data = JSON.stringify({...previous, version: 8, exportedAt: new Date().toISOString()});
+  if (data.length > 750000) return;
+  const items = [{id:id(), at:new Date().toISOString(), label, data}, ...recentBackups()].slice(0, 4);
+  for (let count = items.length; count >= 1; count--) {
+    try { localStorage.setItem(BACKUPS_KEY, JSON.stringify(items.slice(0, count))); break; }
+    catch { if (count === 1) return; }
+  }
+  renderBackups();
+}
+$("#backupList").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-local-backup]");
+  if (!button) return;
+  const item = recentBackups().find((copy) => copy.id === button.dataset.localBackup);
+  if (!item) return;
+  download(`jornadas-copia-${item.at.slice(0, 19).replace(/[:T]/g, "-")}.json`,
+    item.data, "application/json");
+});
+
 function isClosed(date) {
   return Boolean(date && state.closedMonths?.[date.slice(0, 7)]);
 }
@@ -307,21 +348,13 @@ function collectHistoryChanges(previous, current) {
   return events;
 }
 function save(options = {}) {
-  const previousHistory = state.history;
-  const previousLocks = options.lockEvent ? {...(state.closedMonths || {})} : null;
-  if (options.lockEvent) {
-    if (options.lockEvent.closed) delete previousLocks[options.lockEvent.month];
-    else previousLocks[options.lockEvent.month] = options.lockEvent.previous;
-  }
   const current = businessSnapshot(state);
   const blockedMonth = protectedChange(lastBusinessSnapshot, current);
   if (blockedMonth) {
-    state.employees = lastBusinessSnapshot.employees;
-    state.holidays = lastBusinessSnapshot.holidays;
-    state.entries = lastBusinessSnapshot.entries;
+    state = structuredClone(lastSavedState);
     render();
     alert(`El período ${monthLabel(blockedMonth)} está cerrado. Reabrilo antes de modificarlo.`);
-    return;
+    return false;
   }
   const actor = window.jornadasCloud?.actor?.() || "Este dispositivo";
   const changes = options.lockEvent
@@ -334,16 +367,35 @@ function save(options = {}) {
         title: "Respaldo JSON", company: "", before: "", after: options.importSummary}]
     : collectHistoryChanges(lastBusinessSnapshot, current);
   if (changes.length) state.history = [...(state.history || []), ...changes];
-  try {
-    localStorage.setItem(KEY, JSON.stringify(state));
-    lastBusinessSnapshot = current;
-    render();
-    window.jornadasCloud?.changed();
-  } catch {
-    state.history = previousHistory;
-    if (previousLocks) state.closedMonths = previousLocks;
-    alert("No se pudo guardar. Descargá un respaldo y liberá espacio antes de continuar.");
+  const previous = lastSavedState;
+  const serialized = JSON.stringify(state);
+  let stored = false;
+  try { localStorage.setItem(KEY, serialized); stored = true; } catch {}
+  if (!stored) {
+    const backups = recentBackups();
+    for (let count = backups.length - 1; count >= 0 && !stored; count--) {
+      try {
+        localStorage.setItem(BACKUPS_KEY, JSON.stringify(backups.slice(0, count)));
+        localStorage.setItem(KEY, serialized);
+        stored = true;
+      } catch {}
+    }
   }
+  if (!stored) {
+    state = structuredClone(previous);
+    render();
+    alert("No se pudo guardar. La operación se canceló para evitar mostrar cambios sin guardar. Descargá un respaldo y liberá espacio.");
+    return false;
+  }
+  lastBusinessSnapshot = current;
+  lastSavedState = structuredClone(state);
+  if (changes.length) keepBackup(previous, options.importSummary ? "Antes de importar un respaldo" :
+    options.lockEvent ? "Antes de cambiar el cierre mensual" :
+    changes.length === 1 ? `Antes de ${changes[0].action.toLowerCase()} ${changes[0].entity}` :
+    `Antes de ${changes.length} cambios`);
+  render();
+  window.jornadasCloud?.changed();
+  return true;
 }
 function displayDate(s) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s || "")) return s || "";
@@ -1170,91 +1222,109 @@ $("#resetAppearance").onclick = () => {
   $("#settingsStatus").textContent = "Diseño original restablecido.";
 };
 $("#configBackup").onclick = () => $("#backup").click();
+renderBackups();
 $("#importBackup").onclick = () => $("#importBackupFile").click();
+function validISODate(date) {
+  if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const parsed = new Date(date + "T00:00:00Z");
+  return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === date;
+}
 $("#importBackupFile").addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
   const status = $("#importStatus");
   try {
+    if (file.size > 10_000_000) throw new Error("Archivo demasiado grande");
     const imported = JSON.parse(await file.text());
-    if (!ensureOpen(...(Array.isArray(imported.entries) ? imported.entries.map((entry) => entry.date) : []),
-        ...(Array.isArray(imported.holidays) ? imported.holidays.map((holiday) => holiday.date) : []))) {
-      status.textContent = "Respaldo no importado: contiene meses cerrados. Reabrí esos meses antes de importar.";
+    if (!imported || !Array.isArray(imported.employees) || !Array.isArray(imported.entries))
+      throw new Error("Formato inválido");
+    const lockedDate = [...imported.entries,
+      ...(Array.isArray(imported.holidays) ? imported.holidays : [])]
+      .map((item) => item?.date).find((date) => typeof date === "string" && isClosed(date));
+    if (lockedDate && !ensureOpen(lockedDate)) {
+      status.textContent = "No se importó nada: el archivo contiene meses cerrados. Reabrí esos meses antes de importar.";
       return;
     }
-    if (!Array.isArray(imported.employees) || !Array.isArray(imported.entries))
-      throw new Error("Formato inválido");
-
+    const candidate = structuredClone(state);
     const employeeMap = new Map();
+    let peopleAdded = 0, holidaysAdded = 0, holidaysUpdated = 0;
     for (const incoming of imported.employees) {
-      const name = String(incoming.name || "").trim();
+      if (!incoming || typeof incoming !== "object") continue;
+      const name = String(incoming.name || "").trim().slice(0, 120);
       const company = String(incoming.company || "").trim();
       if (!name || !companies.includes(company)) continue;
-      let existing = state.employees.find((e) =>
-        normalize(e.name) === normalize(name) && e.company === company
-      );
+      let existing = candidate.employees.find((person) =>
+        normalize(person.name) === normalize(name) && person.company === company);
       if (!existing) {
-        existing = { id: id(), name, company };
-        state.employees.push(existing);
+        existing = {id:id(), name, company};
+        candidate.employees.push(existing);
+        peopleAdded++;
       }
       employeeMap.set(String(incoming.id || `${company}|${name}`), existing.id);
     }
-
     if (Array.isArray(imported.holidays)) {
       for (const holiday of imported.holidays) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(holiday.date || "") || !holiday.name) continue;
-        const existing = state.holidays.find((x) => x.date === holiday.date);
-        if (existing) existing.name = holiday.name;
-        else state.holidays.push({ id: id(), date: holiday.date, name: holiday.name });
+        if (!holiday || !validISODate(holiday.date) || !String(holiday.name || "").trim()) continue;
+        const name = String(holiday.name).trim().slice(0, 120);
+        const existing = candidate.holidays.find((item) => item.date === holiday.date);
+        if (existing) {
+          if (existing.name !== name) { existing.name = name; holidaysUpdated++; }
+        } else { candidate.holidays.push({id:id(), date:holiday.date, name}); holidaysAdded++; }
       }
     }
-
-    let added = 0, updated = 0;
+    let added = 0, updated = 0, skipped = 0;
     for (const incoming of imported.entries) {
+      if (!incoming || !validISODate(incoming.date)) { skipped++; continue; }
       const mappedEmployeeId = employeeMap.get(String(incoming.employeeId));
-      if (!mappedEmployeeId || !/^\d{4}-\d{2}-\d{2}$/.test(incoming.date || "")) continue;
-      const trackingState = Object.hasOwn(TRACKING, incoming.trackingState)
-        ? incoming.trackingState : "no_aplica";
+      if (!mappedEmployeeId) { skipped++; continue; }
       const record = {
-        id: id(),
-        employeeId: mappedEmployeeId,
-        date: incoming.date,
-        type: incoming.type === "ordinario" ? "ordinario" : "feriado",
-        trackingState,
-        note: String(incoming.note || "").trim(),
+        id:id(), employeeId:mappedEmployeeId, date:incoming.date,
+        type:incoming.type === "ordinario" ? "ordinario" : "feriado",
+        trackingState:Object.hasOwn(TRACKING, incoming.trackingState) ? incoming.trackingState : "no_aplica",
+        note:String(incoming.note || "").trim().slice(0, 500),
       };
-      const existingIndex = state.entries.findIndex((x) =>
-        x.employeeId === mappedEmployeeId && x.date === incoming.date
-      );
-      if (existingIndex >= 0) {
-        record.id = state.entries[existingIndex].id;
-        state.entries[existingIndex] = record;
-        updated++;
-      } else {
-        state.entries.push(record);
-        added++;
-      }
+      const index = candidate.entries.findIndex((item) =>
+        item.employeeId === mappedEmployeeId && item.date === incoming.date);
+      if (index >= 0) {
+        record.id = candidate.entries[index].id;
+        if (JSON.stringify(candidate.entries[index]) !== JSON.stringify(record)) {
+          candidate.entries[index] = record;
+          updated++;
+        }
+      } else { candidate.entries.push(record); added++; }
     }
     if (Array.isArray(imported.history)) {
-      const known = new Set((state.history || []).map((event) => event.id));
-      for (const event of imported.history) {
-        if (!event || typeof event.id !== "string" || typeof event.at !== "string" ||
-            typeof event.title !== "string" || !["registro", "feriado", "colaborador", "respaldo", "cierre"].includes(event.entity) ||
-            known.has(event.id)) continue;
-        if (!Array.isArray(state.history)) state.history = [];
-        state.history.push({
-          id: event.id, at: event.at, entity: event.entity,
-          action: String(event.action || "Editó"), title: event.title,
-          company: String(event.company || ""), actor: String(event.actor || "Este dispositivo"),
-          before: String(event.before || ""), after: String(event.after || ""),
+      const known = new Set((candidate.history || []).map((item) => item.id));
+      for (const item of imported.history) {
+        if (!item || typeof item.id !== "string" || typeof item.at !== "string" ||
+            typeof item.title !== "string" ||
+            !["registro", "feriado", "colaborador", "respaldo", "cierre"].includes(item.entity) ||
+            known.has(item.id)) continue;
+        if (!Array.isArray(candidate.history)) candidate.history = [];
+        candidate.history.push({
+          id:item.id, at:item.at, entity:item.entity,
+          action:String(item.action || "Editó"), title:item.title,
+          company:String(item.company || ""), actor:String(item.actor || "Este dispositivo"),
+          before:String(item.before || ""), after:String(item.after || ""),
         });
-        known.add(event.id);
+        known.add(item.id);
       }
     }
-    save({importSummary: `${added} registros agregados · ${updated} actualizados`});
-    status.textContent = `Importación lista: ${added} registros agregados y ${updated} actualizados.`;
+    const blockedMonth = protectedChange(lastBusinessSnapshot, businessSnapshot(candidate));
+    if (blockedMonth) {
+      status.textContent = `No se importó nada: ${monthLabel(blockedMonth)} está cerrado.`;
+      return;
+    }
+    const summary = `${added} registros nuevos · ${updated} actualizados · ${peopleAdded} colaboradores nuevos · ${holidaysAdded} feriados nuevos · ${holidaysUpdated} feriados actualizados`;
+    if (!confirm(`Se combinará el respaldo con los datos actuales:\n\n${summary}${skipped ? `\n${skipped} registros inválidos u omitidos` : ""}\n\nSe intentará guardar una copia local de la versión anterior. ¿Continuar?`)) {
+      status.textContent = "Importación cancelada; no se modificó ningún dato.";
+      return;
+    }
+    state = candidate;
+    if (save({importSummary: summary})) status.textContent = `Importación completa: ${summary}.`;
+    else status.textContent = "No se completó la importación. Los datos anteriores se conservaron.";
   } catch (error) {
-    status.textContent = "No se pudo importar el archivo. Verificá que sea un respaldo JSON válido.";
+    status.textContent = "No se pudo importar el archivo. Verificá que sea un respaldo JSON válido y de menos de 10 MB.";
   } finally {
     event.target.value = "";
   }
@@ -1360,6 +1430,7 @@ window.jornadasCloud?.start({
     if (!seedUpcomingHolidays(state)) return false;
     localStorage.setItem(KEY, JSON.stringify(state));
     lastBusinessSnapshot = businessSnapshot(state);
+    lastSavedState = structuredClone(state);
     render();
     return true;
   },
@@ -1369,6 +1440,7 @@ window.jornadasCloud?.start({
     state = data;
     lastBusinessSnapshot = businessSnapshot(state);
     localStorage.setItem(KEY, JSON.stringify(state));
+    lastSavedState = structuredClone(state);
     render();
   },
   downloadBackup() { $("#backup").click(); },
