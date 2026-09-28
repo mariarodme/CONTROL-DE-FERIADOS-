@@ -156,6 +156,7 @@
   }
   window.jornadasCloud = {
     actor() { return sharedMode ? "Acceso por enlace" : user?.email || "Este dispositivo"; },
+    storageScope() { return sharedMode ? sharedUid : user?.uid || "dispositivo"; },
     async start(host) {
       adapter = host;
       if (!ready) {
@@ -179,6 +180,7 @@
         authModule.onAuthStateChanged(auth, (account) => {
           if (unsubscribe) { unsubscribe(); unsubscribe = null; }
           user = account;
+          adapter.refreshBackups?.();
           remote = null; revision = 0; connected = dirty = blocked = saving = false;
           if (!account && !sharedMode) {
             dataRef = null;
