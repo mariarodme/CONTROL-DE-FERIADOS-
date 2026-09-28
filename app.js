@@ -540,7 +540,6 @@ function render() {
   renderPending();
   renderReports();
   renderHistory();
-  renderBackups();
 }
 function renderHolidays() {
   const year = $("#holidayYear").value;
@@ -1444,6 +1443,7 @@ window.jornadasCloud?.start({
     localStorage.setItem(KEY, JSON.stringify(state));
     lastSavedState = structuredClone(state);
     render();
+    renderBackups();
   },
   refreshBackups() { renderBackups(); },
   downloadBackup() { $("#backup").click(); },
