@@ -155,6 +155,7 @@
     }
   }
   window.jornadasCloud = {
+    actor() { return sharedMode ? "Acceso por enlace" : user?.email || "Este dispositivo"; },
     async start(host) {
       adapter = host;
       if (!ready) {
