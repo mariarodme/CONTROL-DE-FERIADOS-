@@ -245,7 +245,7 @@ function openCloseReview(month) {
 }
 $("#periodLockAction").addEventListener("click", () => {
   const month = $("#month").value;
-  if (!/^\\d{4}-\\d{2}$/.test(month)) return;
+  if (!/^\d{4}-\d{2}$/.test(month)) return;
   if (!state.closedMonths?.[month]) return openCloseReview(month);
   if (confirm(`¿Reabrir ${monthLabel(month)}? Se podrán volver a editar sus registros y feriados. Esta acción quedará en el historial.`))
     applyMonthLock(month, false);
