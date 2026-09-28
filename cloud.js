@@ -21,6 +21,7 @@
     $("#cloudIndicator").dataset.status = mode;
     $("#syncSummary").textContent = mode === "online" ? "✓ Guardado en línea · Ver configuración" : mode === "saving" ? "Guardando en línea…" : mode === "error" ? "⚠ No se guardó en línea · Ver configuración" : "Datos guardados solo en este dispositivo · Ver configuración";
     $("#syncSummary").dataset.status = mode;
+    window.jornadasSaveStatus?.(mode);
   }
   function actions({upload = false, open = false, retry = false} = {}) {
     $("#firebaseSignIn").hidden = !ready || !!user || sharedMode;
@@ -155,6 +156,9 @@
     }
   }
   window.jornadasCloud = {
+    revisionToken() { return connected ? `online:${revision}` : `local:${fingerprint(adapter?.getData?.() || {})}`; },
+    isFresh(token) { return token === (connected ? `online:${revision}` : `local:${fingerprint(adapter?.getData?.() || {})}`) && !blocked; },
+    canEdit() { return !blocked; },
     actor() { return sharedMode ? "Acceso por enlace" : user?.email || "Este dispositivo"; },
     storageScope() { return sharedMode ? sharedUid : user?.uid || "dispositivo"; },
     async start(host) {
