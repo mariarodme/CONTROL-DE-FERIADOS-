@@ -63,7 +63,9 @@
     return `<c r="${column}${row}" t="inlineStr"${style ? ` s="${style}"` : ""}><is><t xml:space="preserve">${text}</t></is></c>`;
   }
   function makeReportWorkbook({ title, period, company, headings, rows }) {
-    const columns = "ABCDEFG";
+    const columns = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    if (headings.length > columns.length) throw new Error("Demasiadas columnas");
+    const lastColumn = columns[headings.length - 1];
     const allRows = [
       [title],
       [period + " · " + company],
@@ -78,14 +80,14 @@
     }).join("");
     const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
       `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
-      `<dimension ref="A1:G${Math.max(4, allRows.length)}"/>` +
+      `<dimension ref="A1:${lastColumn}${Math.max(4, allRows.length)}"/>` +
       `<sheetViews><sheetView workbookViewId="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A5" sqref="A5"/></sheetView></sheetViews>` +
       `<sheetFormatPr baseColWidth="8" defaultRowHeight="15"/>` +
-      `<cols>${[16, 33, 28, 43, 17, 31, 54].map((width, i) =>
+      `<cols>${[16, 33, 28, 43, 17, 31, 18, 24, 54].slice(0, headings.length).map((width, i) =>
         `<col min="${i + 1}" max="${i + 1}" width="${width}" customWidth="1"/>`).join("")}</cols>` +
       `<sheetData>${sheetRows}</sheetData>` +
-      `<autoFilter ref="A4:G${Math.max(4, allRows.length)}"/>` +
-      `<mergeCells count="2"><mergeCell ref="A1:G1"/><mergeCell ref="A2:G2"/></mergeCells>` +
+      `<autoFilter ref="A4:${lastColumn}${Math.max(4, allRows.length)}"/>` +
+      `<mergeCells count="2"><mergeCell ref="A1:${lastColumn}1"/><mergeCell ref="A2:${lastColumn}2"/></mergeCells>` +
       `<pageMargins left="0.5" right="0.5" top="0.7" bottom="0.7" header="0.3" footer="0.3"/></worksheet>`;
     const ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
     return zip([
