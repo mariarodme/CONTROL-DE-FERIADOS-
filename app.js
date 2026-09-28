@@ -1494,7 +1494,7 @@ document.addEventListener("keydown", (event) => {
     $("#menuToggle").focus();
   }
 });
-const views = new Set(["inicio", "resumen", "calendario", "registro", "matriz", "pendientes", "equipo", "ficha", "feriados", "reportes", "historial", "configuracion"]);
+const views = new Set(["inicio", "resumen", "calendario", "registro", "matriz", "pendientes", "equipo", "ficha", "feriados", "reportes", "historial", "configuracion", "electricidad"]);
 function showView(view, scroll = true) {
   const selected = views.has(view) ? view : "inicio";
   document.body.dataset.view = selected;
