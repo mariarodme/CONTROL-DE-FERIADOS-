@@ -56,10 +56,14 @@
     remote = data;
     connected = true;
     dirty = blocked = false;
-    lastSynced = fingerprint(adapter.getData());
-    remember();
+    lastSynced = fingerprint(data.payload);
     actions();
     message(`Guardado en línea · ${sharedMode ? "enlace compartido" : user.email || "sesión iniciada"}`, "online");
+    // Se agregan una sola vez tras abrir el estado remoto, sin pisar ediciones anteriores.
+    if (!sharedMode && adapter.seedUpcomingHolidays?.()) {
+      dirty = true;
+      flush();
+    } else remember();
   }
   function receive(data) {
     remote = data;
