@@ -620,6 +620,7 @@ function openBulk(preferredDate) {
   renderBulkRows();
   $("#bulkDialog").showModal();
   $("#bulkHoliday").focus();
+  $("#bulkDialog").scrollTop = 0;
 }
 $("#bulkRows").addEventListener("input", (event) => {
   const row = event.target.closest("[data-bulk-person]");
