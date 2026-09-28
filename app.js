@@ -30,6 +30,45 @@ const INITIAL_HOLIDAYS_2026 = [
   ["2026-09-15", "Independencia de Costa Rica"],
   ["2026-12-25", "Navidad"],
 ];
+// Calendario proyectado con las fechas vigentes; los años futuros se pueden editar.
+const HOLY_WEEK_2027_2031 = {
+  2027: ["03-25", "03-26"],
+  2028: ["04-13", "04-14"],
+  2029: ["03-29", "03-30"],
+  2030: ["04-18", "04-19"],
+  2031: ["04-10", "04-11"],
+};
+const ANNUAL_HOLIDAYS = [
+  ["01-01", "Año Nuevo"],
+  ["04-11", "Día de Juan Santamaría"],
+  ["05-01", "Día del Trabajador"],
+  ["07-25", "Anexión del Partido de Nicoya"],
+  ["08-02", "Día de la Virgen de los Ángeles"],
+  ["08-15", "Día de la Madre"],
+  ["08-31", "Día de la Persona Negra y la Cultura Afrocostarricense"],
+  ["09-15", "Independencia de Costa Rica"],
+  ["12-01", "Abolición del Ejército"],
+  ["12-25", "Navidad"],
+];
+function seedUpcomingHolidays(data) {
+  if (data.upcomingHolidaySeedVersion === 1) return false;
+  const existing = new Set(data.holidays.map((holiday) => holiday.date));
+  for (const [yearText, [thursday, friday]] of Object.entries(HOLY_WEEK_2027_2031)) {
+    const year = Number(yearText);
+    const byDate = new Map(ANNUAL_HOLIDAYS);
+    byDate.set(thursday, "Jueves Santo");
+    byDate.set(friday, [byDate.get(friday), "Viernes Santo"].filter(Boolean).reverse().join(" · "));
+    for (const [monthDay, name] of byDate) {
+      const date = `${year}-${monthDay}`;
+      if (!existing.has(date)) {
+        data.holidays.push({id: id(), date, name});
+        existing.add(date);
+      }
+    }
+  }
+  data.upcomingHolidaySeedVersion = 1;
+  return true;
+}
 const TRACKING = {
   pendiente: "Pendiente",
   disfrutado: "Disfrutado",
@@ -939,6 +978,12 @@ showView(location.hash.slice(1) || "inicio", false);
 document.documentElement.classList.add("js-ready");
 window.jornadasCloud?.start({
   getData: () => state,
+  seedUpcomingHolidays() {
+    if (!seedUpcomingHolidays(state)) return false;
+    localStorage.setItem(KEY, JSON.stringify(state));
+    render();
+    return true;
+  },
   replaceData(data) {
     if (!Array.isArray(data?.employees) || !Array.isArray(data?.entries) || !Array.isArray(data?.holidays))
       throw new Error("Los datos en línea tienen un formato inválido.");
