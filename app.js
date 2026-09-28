@@ -196,25 +196,83 @@ function renderPeriodLock() {
   $("#periodLockAction").textContent = info ? "Reabrir mes" : "Cerrar mes";
   $("#periodLockAction").setAttribute("aria-label", `${info ? "Reabrir" : "Cerrar"} ${label}`);
 }
-$("#periodLockAction").addEventListener("click", () => {
-  const month = $("#month").value;
+function applyMonthLock(month, close) {
   if (!/^\d{4}-\d{2}$/.test(month)) return;
   const previous = state.closedMonths?.[month];
-  const closed = Boolean(previous);
-  const label = monthLabel(month);
-  const pending = state.entries.filter((entry) => entry.date.startsWith(month) &&
-    ["pendiente", "pago_pendiente"].includes(entry.trackingState)).length;
-  const message = closed
-    ? `¿Reabrir ${label}? Se podrán volver a editar sus registros y feriados. Esta acción quedará en el historial.`
-    : `¿Cerrar ${label}? No se podrán agregar, editar ni eliminar sus registros y feriados hasta que lo reabras.${pending ? ` Hay ${pending} pendiente${pending === 1 ? "" : "s"} en este mes.` : ""} Esta acción quedará en el historial.`;
-  if (!confirm(message)) return;
+  if (close === Boolean(previous)) return;
   if (!state.closedMonths || typeof state.closedMonths !== "object" || Array.isArray(state.closedMonths))
     state.closedMonths = {};
-  if (closed) delete state.closedMonths[month];
-  else state.closedMonths[month] = {at: new Date().toISOString(), actor: window.jornadasCloud?.actor?.() || "Este dispositivo"};
-  save({lockEvent: {month, closed: !closed, previous}});
+  if (close) state.closedMonths[month] = {at: new Date().toISOString(), actor: window.jornadasCloud?.actor?.() || "Este dispositivo"};
+  else delete state.closedMonths[month];
+  save({lockEvent: {month, closed: close, previous}});
+}
+function closeReview(month) {
+  const pending = state.entries.filter((entry) => entry.date.startsWith(month) &&
+    ["pendiente", "pago_pendiente"].includes(entry.trackingState))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const gaps = state.holidays.filter((holiday) => holiday.date.startsWith(month))
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((holiday) => ({
+      holiday, people: state.employees.filter((person) =>
+        !state.entries.some((entry) => entry.date === holiday.date && entry.employeeId === person.id))
+        .sort((a, b) => a.company.localeCompare(b.company, "es") || a.name.localeCompare(b.name, "es")),
+    })).filter((item) => item.people.length);
+  return {pending, gaps, missing: gaps.reduce((total, item) => total + item.people.length, 0)};
+}
+function openCloseReview(month) {
+  const {pending, gaps, missing} = closeReview(month);
+  const dialog = $("#closeReviewDialog");
+  dialog.dataset.month = month;
+  $("#closeReviewTitle").textContent = `Revisar ${monthLabel(month)}`;
+  $("#closeReviewSummary").textContent = pending.length || missing
+    ? `${pending.length} pendiente${pending.length === 1 ? "" : "s"} · ${missing} sin registro en feriados`
+    : "No se encontraron pendientes ni colaboradores sin registro en los feriados de este mes.";
+  $("#closeReviewPending").innerHTML = pending.length
+    ? `<section class="close-review-group"><h3>Pagos o estados pendientes <span>${pending.length}</span></h3>
+      <ul>${pending.map((entry) => `<li><strong>${escapeHtml(employee(entry)?.name || "Colaborador eliminado")}</strong> · ${escapeHtml(displayDate(entry.date))} · ${escapeHtml(TRACKING[entry.trackingState])}</li>`).join("")}</ul>
+      <button type="button" class="secondary" id="closeReviewGoPending">Ver pendientes</button></section>`
+    : '<p class="close-review-ok">Sin pagos ni estados pendientes en este mes.</p>';
+  $("#closeReviewMissing").innerHTML = gaps.length
+    ? `<section class="close-review-group"><h3>Colaboradores sin registro en feriados <span>${missing}</span></h3>
+      ${gaps.map(({holiday, people}) => `<details class="close-review-holiday">
+        <summary><strong>${escapeHtml(displayDate(holiday.date))} · ${escapeHtml(holiday.name)}</strong><span>${people.length} sin registro</span></summary>
+        <ul>${people.map((person) => `<li>${escapeHtml(person.name)} · ${escapeHtml(person.company)}</li>`).join("")}</ul>
+        <button type="button" class="secondary" data-review-bulk="${escapeHtml(holiday.date)}">Registrar colaboradores</button>
+      </details>`).join("")}</section>`
+    : '<p class="close-review-ok">Todos los colaboradores tienen registro en los feriados de este mes.</p>';
+  $("#closeReviewConfirm").textContent = pending.length || missing ? "Cerrar mes de todos modos" : "Cerrar mes";
+  dialog.showModal();
+}
+$("#periodLockAction").addEventListener("click", () => {
+  const month = $("#month").value;
+  if (!/^\\d{4}-\\d{2}$/.test(month)) return;
+  if (!state.closedMonths?.[month]) return openCloseReview(month);
+  if (confirm(`¿Reabrir ${monthLabel(month)}? Se podrán volver a editar sus registros y feriados. Esta acción quedará en el historial.`))
+    applyMonthLock(month, false);
 });
-
+$("#closeReviewCancel").onclick = $("#closeReviewX").onclick = () => $("#closeReviewDialog").close();
+$("#closeReviewConfirm").onclick = () => {
+  const month = $("#closeReviewDialog").dataset.month;
+  if (state.closedMonths?.[month]) {
+    $("#closeReviewDialog").close();
+    render();
+    return alert("Este mes ya está cerrado.");
+  }
+  $("#closeReviewDialog").close();
+  applyMonthLock(month, true);
+};
+$("#closeReviewDialog").addEventListener("click", (event) => {
+  if (event.target === $("#closeReviewDialog")) $("#closeReviewDialog").close();
+  const date = event.target.closest("[data-review-bulk]")?.dataset.reviewBulk;
+  if (date) {
+    $("#closeReviewDialog").close();
+    openBulk(date);
+  }
+  if (event.target.id === "closeReviewGoPending") {
+    $("#closeReviewDialog").close();
+    location.hash = "#pendientes";
+  }
+});
 function historyDescription(entity, value) {
   if (!value) return "";
   if (entity === "colaborador") return `${value.name} · ${value.company}`;
