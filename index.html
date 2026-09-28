@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
     <title>Control de Feriados · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260928-14" />
+    <link rel="stylesheet" href="styles.css?v=20260928-15" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -50,13 +50,19 @@
       <main>
         <noscript><p class="script-notice">Este visor no ejecuta las funciones de la página. Para registrar o editar datos, abrila en Safari o desde GitHub Pages.</p></noscript>
         <section id="inicio" class="home-start">
-          <div class="home-start-heading">
-            <span>MONTE CARLO · JACÓ BEACH ONSITE</span>
-            <h1>Asuntos por resolver</h1>
-            <p id="homeTaskPeriod">Del mes seleccionado</p>
+          <div class="home-visual">
+            <img src="monte_carlo_pool_hero.jpg" alt="" class="home-visual-photo" />
+            <div class="home-visual-content">
+              <span>MONTE CARLO · JACÓ BEACH ONSITE</span>
+              <h1>Control de<br />Feriados</h1>
+              <p>Una vista clara de los feriados y días laborados de cada colaborador.</p>
+            </div>
           </div>
           <div class="panel home-urgent">
-            <div class="home-urgent-head"><strong>Prioridades del mes</strong><span id="homeTaskCount" class="count">0 asuntos</span></div>
+            <div class="home-urgent-head">
+              <div><span class="section-eyebrow">PARA REVISAR</span><h2>Asuntos por resolver</h2><p id="homeTaskPeriod">Del mes seleccionado</p></div>
+              <span id="homeTaskCount" class="count">0 asuntos</span>
+            </div>
             <div class="task-list" id="homeTaskList"></div>
             <a href="#resumen" id="homeTaskMore" class="home-task-more" hidden>Ver todos los asuntos →</a>
           </div>
