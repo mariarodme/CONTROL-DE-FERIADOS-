@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
     <title>Control de Feriados · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260927-18" />
+    <link rel="stylesheet" href="styles.css?v=20260928-2" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -136,7 +136,7 @@
             <div>
               <h2>Días registrados</h2>
             </div>
-            <div class="section-actions"><span id="resultCount" class="count"></span><button class="primary" id="newEntryFromControl" type="button">+ Nuevo registro</button></div>
+            <div class="section-actions"><span id="resultCount" class="count"></span><button class="secondary" id="bulkFromControl" type="button">Registrar varios</button><button class="primary" id="newEntryFromControl" type="button">+ Nuevo registro</button></div>
           </div>
           <div class="panel">
             <div class="filters">
@@ -399,6 +399,25 @@
         </div>
       </form>
     </dialog>
+    <dialog id="bulkDialog" class="bulk-dialog" aria-labelledby="bulkTitle">
+      <form id="bulkForm">
+        <div class="dialog-head">
+          <div><span class="dialog-eyebrow">REGISTRO EN GRUPO</span><h2 id="bulkTitle">Registrar colaboradores</h2><p class="bulk-intro">Escogé el estado de cada persona y guardá todo de una vez.</p></div>
+          <button type="button" class="close" id="closeBulkDialog" aria-label="Cerrar registro en grupo">×</button>
+        </div>
+        <div class="bulk-filters">
+          <label class="field">Feriado <select id="bulkHoliday" required aria-label="Feriado para registrar"></select></label>
+          <label class="field">Empresa <select id="bulkCompany" aria-label="Empresa para registro en grupo"><option value="">Todas las empresas</option><option value="Condominio Monte Carlo">Monte Carlo</option><option value="Jacó Beach Onsite Management Services Ltda.">Jacó Beach Onsite</option></select></label>
+        </div>
+        <p class="bulk-count" id="bulkCount" role="status"></p>
+        <div class="bulk-rows" id="bulkRows"></div>
+        <p class="bulk-help">Dejá «Sin registrar» para no crear un registro. Para eliminar uno existente, usá Control General.</p>
+        <div class="dialog-actions bulk-footer">
+          <button type="button" class="secondary" id="cancelBulkDialog">Cancelar</button>
+          <button type="submit" class="primary">Guardar registros</button>
+        </div>
+      </form>
+    </dialog>
     <dialog id="calendarDayDialog" class="calendar-detail-dialog" aria-labelledby="calendarDayTitle">
       <div class="dialog-head">
         <div><span class="dialog-eyebrow">REGISTROS DE LA FECHA</span><h2 id="calendarDayTitle"></h2><p id="calendarDayHoliday"></p></div>
@@ -406,7 +425,7 @@
       </div>
       <p id="calendarDayCount" class="calendar-detail-count"></p>
       <div id="calendarDayEntries" class="calendar-detail-list"></div>
-      <div class="dialog-actions"><button type="button" class="primary" id="calendarDayAdd">+ Agregar registro en esta fecha</button></div>
+      <div class="dialog-actions"><button type="button" class="secondary" id="calendarDayBulk" hidden>Registrar varios</button><button type="button" class="primary" id="calendarDayAdd">+ Agregar registro en esta fecha</button></div>
     </dialog>
     <dialog id="entryDialog">
       <form id="entryForm">
@@ -466,6 +485,6 @@
     <script src="firebase-config.js?v=20260927-3"></script>
     <script src="cloud.js?v=20260928-1"></script>
     <script src="xlsx.js?v=20260927-18"></script>
-    <script src="app.js?v=20260928-1"></script>
+    <script src="app.js?v=20260928-2"></script>
   </body>
 </html>
