@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
     <title>Control de Feriados · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260928-2" />
+    <link rel="stylesheet" href="styles.css?v=20260928-4" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -26,6 +26,7 @@
           <a href="#matriz">Matriz Anual</a>
           <a href="#pendientes">Pendientes</a>
           <a href="#reportes">Reportes</a>
+          <a href="#historial">Historial</a>
           <a href="#configuracion" class="nav-settings">⚙ &nbsp; Configuración y diseño</a>
         </nav>
         <details class="menu-disclosure" id="menuDisclosure">
@@ -41,6 +42,7 @@
             <a href="#equipo">Colaboradores</a>
             <a href="#feriados">Feriados</a>
             <a href="#reportes">Reportes</a>
+          <a href="#historial">Historial</a>
             <a href="#configuracion" class="nav-settings">⚙ &nbsp; Configuración y diseño</a>
           </nav>
         </details>
@@ -254,6 +256,19 @@
             <p class="report-footnote" id="reportFootnote"></p>
           </div>
           <div class="panel utility-panel report-utilities"><div><strong>Registros de Control General</strong><p>Descargá en CSV la tabla con los filtros que seleccionaste en Control General.</p><button type="button" class="secondary" id="exportCsv">Descargar CSV</button></div><div><strong>Respaldo completo</strong><p>Guardá colaboradores, feriados y registros en formato JSON.</p><button type="button" class="secondary" id="backup">Descargar respaldo</button></div></div>
+        </section>
+        <section id="historial" class="history-section">
+          <div class="section-heading">
+            <div><h2>Historial de cambios</h2><p class="section-intro">Movimientos realizados desde que se activó esta función.</p></div>
+            <span class="count" id="historyCount"></span>
+          </div>
+          <div class="history-filters">
+            <label class="field">Buscar <input id="historySearch" type="search" placeholder="Colaborador, feriado o detalle" /></label>
+            <label class="field">Tipo de cambio
+              <select id="historyType"><option value="">Todos</option><option value="registro">Registros</option><option value="feriado">Feriados</option><option value="colaborador">Colaboradores</option><option value="respaldo">Importaciones</option></select>
+            </label>
+          </div>
+          <div class="history-list" id="historyList"></div>
         </section>
         <section id="configuracion">
           <div class="section-heading"><div><h2>Configuración y diseño</h2><p class="section-intro">Guardado y preferencias de la página.</p></div></div>
@@ -483,8 +498,8 @@
       </form>
     </dialog>
     <script src="firebase-config.js?v=20260927-3"></script>
-    <script src="cloud.js?v=20260928-1"></script>
+    <script src="cloud.js?v=20260928-4"></script>
     <script src="xlsx.js?v=20260927-18"></script>
-    <script src="app.js?v=20260928-3"></script>
+    <script src="app.js?v=20260928-4"></script>
   </body>
 </html>
