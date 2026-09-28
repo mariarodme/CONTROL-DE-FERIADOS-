@@ -150,9 +150,10 @@ function businessSnapshot(data) {
 let lastBusinessSnapshot = businessSnapshot(state);
 let lastSavedState = structuredClone(state);
 const BACKUPS_KEY = "jaco-jornadas-copias-locales";
+const backupsStorageKey = () => `${BACKUPS_KEY}-${window.jornadasCloud?.storageScope?.() || "dispositivo"}`;
 function recentBackups() {
   try {
-    const items = JSON.parse(localStorage.getItem(BACKUPS_KEY) || "[]");
+    const items = JSON.parse(localStorage.getItem(backupsStorageKey()) || "[]");
     return Array.isArray(items) ? items.filter((item) => item && typeof item.at === "string" &&
       typeof item.data === "string" && typeof item.id === "string").slice(0, 4) : [];
   } catch { return []; }
@@ -175,7 +176,7 @@ function keepBackup(previous, label) {
   if (data.length > 750000) return;
   const items = [{id:id(), at:new Date().toISOString(), label, data}, ...recentBackups()].slice(0, 4);
   for (let count = items.length; count >= 1; count--) {
-    try { localStorage.setItem(BACKUPS_KEY, JSON.stringify(items.slice(0, count))); break; }
+    try { localStorage.setItem(backupsStorageKey(), JSON.stringify(items.slice(0, count))); break; }
     catch { if (count === 1) return; }
   }
   renderBackups();
@@ -375,7 +376,7 @@ function save(options = {}) {
     const backups = recentBackups();
     for (let count = backups.length - 1; count >= 0 && !stored; count--) {
       try {
-        localStorage.setItem(BACKUPS_KEY, JSON.stringify(backups.slice(0, count)));
+        localStorage.setItem(backupsStorageKey(), JSON.stringify(backups.slice(0, count)));
         localStorage.setItem(KEY, serialized);
         stored = true;
       } catch {}
@@ -539,6 +540,7 @@ function render() {
   renderPending();
   renderReports();
   renderHistory();
+  renderBackups();
 }
 function renderHolidays() {
   const year = $("#holidayYear").value;
@@ -1443,5 +1445,6 @@ window.jornadasCloud?.start({
     lastSavedState = structuredClone(state);
     render();
   },
+  refreshBackups() { renderBackups(); },
   downloadBackup() { $("#backup").click(); },
 });
