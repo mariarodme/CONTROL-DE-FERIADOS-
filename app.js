@@ -74,8 +74,13 @@ const TRACKING = {
   disfrutado: "Disfrutado",
   pago_pendiente: "Trabajado – Pago pendiente",
   pagado: "Trabajado – Pagado",
+  libre_pendiente: "Trabajado – Día libre pendiente",
+  libre_disfrutado: "Trabajado – Día libre disfrutado",
+  no_laboro: "No laboró",
   no_aplica: "No aplica",
 };
+const PENDING_STATES = ["pendiente", "pago_pendiente", "libre_pendiente"];
+const WORKED_STATES = ["pago_pendiente", "pagado", "libre_pendiente", "libre_disfrutado"];
 const $ = (s) => document.querySelector(s),
   escapeHtml = (s) =>
     String(s ?? "").replace(
@@ -141,6 +146,7 @@ let state = load(),
   editing = null,
   editingEmployee = null,
   editingHoliday = null,
+  activePersonId = null,
   teamFilter = "";
 function businessSnapshot(data) {
   return JSON.parse(JSON.stringify({
@@ -172,7 +178,7 @@ function renderBackups() {
   }).join("");
 }
 function keepBackup(previous, label) {
-  const data = JSON.stringify({...previous, version: 8, exportedAt: new Date().toISOString()});
+  const data = JSON.stringify({...previous, version: 9, exportedAt: new Date().toISOString()});
   if (data.length > 750000) return;
   const items = [{id:id(), at:new Date().toISOString(), label, data}, ...recentBackups()].slice(0, 4);
   for (let count = items.length; count >= 1; count--) {
@@ -250,7 +256,7 @@ function applyMonthLock(month, close) {
 }
 function closeReview(month) {
   const pending = state.entries.filter((entry) => entry.date.startsWith(month) &&
-    ["pendiente", "pago_pendiente"].includes(entry.trackingState))
+    PENDING_STATES.includes(entry.trackingState))
     .sort((a, b) => a.date.localeCompare(b.date));
   const gaps = state.holidays.filter((holiday) => holiday.date.startsWith(month))
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -319,7 +325,7 @@ function historyDescription(entity, value) {
   if (!value) return "";
   if (entity === "colaborador") return `${value.name} · ${value.company}`;
   if (entity === "feriado") return `${displayDate(value.date)} · ${value.name}`;
-  return `${displayDate(value.date)} · ${value.type === "feriado" ? "Feriado" : "Ordinario"} · ${TRACKING[value.trackingState] || TRACKING.no_aplica}${value.note ? " · " + value.note : ""}`;
+  return `${displayDate(value.date)} · ${value.type === "feriado" ? "Feriado" : "Ordinario"} · ${TRACKING[value.trackingState] || TRACKING.no_aplica}${value.paidAt ? " · Pagado: " + displayDate(value.paidAt) : ""}${value.compensatoryDate ? " · Libre disfrutado: " + displayDate(value.compensatoryDate) : ""}${value.note ? " · " + value.note : ""}`;
 }
 function collectHistoryChanges(previous, current) {
   const actor = window.jornadasCloud?.actor?.() || "Este dispositivo";
@@ -449,17 +455,66 @@ function renderEmployeeCard(person) {
   const entries = state.entries.filter((entry) => entry.employeeId === person.id);
   const counts = [
     ["Registros", entries.length, "total"],
-    ["Disfrutados", entries.filter((entry) => entry.trackingState === "disfrutado").length, "enjoyed"],
+    ["Libres pendientes", entries.filter((entry) => entry.trackingState === "libre_pendiente").length, "pending"],
     ["Pagados", entries.filter((entry) => entry.trackingState === "pagado").length, "paid"],
-    ["Pendientes", entries.filter((entry) => ["pendiente", "pago_pendiente"].includes(entry.trackingState)).length, "pending"],
+    ["Pendientes", entries.filter((entry) => PENDING_STATES.includes(entry.trackingState)).length, "pending"],
   ];
   const initials = person.name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0).toLocaleUpperCase("es")).join("");
   const shortCompany = person.company === companies[0] ? "Monte Carlo" : "Jacó Beach Onsite";
   return `<article class="person-card">
     <div class="person-card-head"><span class="person-avatar" aria-hidden="true">${escapeHtml(initials)}</span><div class="person-identity"><h4>${escapeHtml(person.name)}</h4><small>${escapeHtml(shortCompany)}</small></div></div>
     <div class="person-stats">${counts.map(([label, count, tone]) => `<div class="person-stat person-stat-${tone}"><span>${label}</span><strong>${count}</strong></div>`).join("")}</div>
-    <div class="person-actions"><button type="button" class="person-add" data-new-for-employee="${escapeHtml(person.id)}" aria-label="Registrar día para ${escapeHtml(person.name)}">+ Registrar día</button><button type="button" class="link" data-edit-employee="${escapeHtml(person.id)}" aria-label="Editar a ${escapeHtml(person.name)}">Editar</button><button type="button" class="link danger" data-remove-employee="${escapeHtml(person.id)}" aria-label="Eliminar a ${escapeHtml(person.name)}">Eliminar</button></div>
+    <div class="person-actions"><button type="button" class="secondary" data-profile="${escapeHtml(person.id)}" aria-label="Ver ficha de ${escapeHtml(person.name)}">Ver ficha</button><button type="button" class="person-add" data-new-for-employee="${escapeHtml(person.id)}" aria-label="Registrar día para ${escapeHtml(person.name)}">+ Registrar día</button><button type="button" class="link" data-edit-employee="${escapeHtml(person.id)}" aria-label="Editar a ${escapeHtml(person.name)}">Editar</button><button type="button" class="link danger" data-remove-employee="${escapeHtml(person.id)}" aria-label="Eliminar a ${escapeHtml(person.name)}">Eliminar</button></div>
   </article>`;
+}
+function renderPersonProfile() {
+  const person = state.employees.find((item) => item.id === activePersonId);
+  if (!person) {
+    $("#personTitle").textContent = "Elegí un colaborador";
+    $("#personCompany").textContent = "";
+    $("#personSummary").innerHTML = "";
+    $("#personRecords").innerHTML = '<p class="empty">Abrí una ficha desde la lista de colaboradores.</p>';
+    $("#personYear").innerHTML = '<option value="">Todos los años</option>';
+    return;
+  }
+  const records = state.entries.filter((entry) => entry.employeeId === person.id);
+  const selected = $("#personYear").value;
+  const years = [...new Set(records.map((entry) => entry.date.slice(0, 4)))].sort((a,b) => b.localeCompare(a));
+  $("#personYear").innerHTML = '<option value="">Todos los años</option>' +
+    years.map((year) => `<option value="${escapeHtml(year)}">${escapeHtml(year)}</option>`).join("");
+  $("#personYear").value = years.includes(selected) ? selected : "";
+  const visible = records.filter((entry) => !$("#personYear").value || entry.date.startsWith($("#personYear").value))
+    .sort((a, b) => b.date.localeCompare(a.date));
+  $("#personTitle").textContent = person.name;
+  $("#personCompany").textContent = person.company;
+  const totals = [
+    ["Registros", visible.length],
+    ["Pago pendiente", visible.filter((entry) => entry.trackingState === "pago_pendiente").length],
+    ["Libres pendientes", visible.filter((entry) => entry.trackingState === "libre_pendiente").length],
+    ["Pagados", visible.filter((entry) => entry.trackingState === "pagado").length],
+    ["Libres disfrutados", visible.filter((entry) => entry.trackingState === "libre_disfrutado").length],
+  ];
+  $("#personSummary").innerHTML = totals.map(([label, count]) =>
+    `<div class="profile-stat"><span>${escapeHtml(label)}</span><strong>${count}</strong></div>`).join("");
+  const holidays = new Map(state.holidays.map((holiday) => [holiday.date, holiday.name]));
+  $("#personRecords").innerHTML = visible.length ? visible.map((entry) => `
+    <article class="profile-record">
+      <div><time datetime="${escapeHtml(entry.date)}">${escapeHtml(displayDate(entry.date))}</time><h3>${escapeHtml(holidays.get(entry.date) || (entry.type === "feriado" ? "Feriado registrado" : "Día ordinario"))}</h3>
+      <span class="tracking tracking-${escapeHtml(entry.trackingState || "no_aplica")}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[entry.trackingState] || TRACKING.no_aplica)}</span>
+      ${entry.paidAt ? `<p>Pagado: ${escapeHtml(displayDate(entry.paidAt))}</p>` : ""}
+      ${entry.compensatoryDate ? `<p>Día libre disfrutado: ${escapeHtml(displayDate(entry.compensatoryDate))}</p>` : ""}
+      ${entry.note ? `<p class="profile-note">${escapeHtml(entry.note)}</p>` : ""}</div>
+      <button type="button" class="secondary" data-edit="${escapeHtml(entry.id)}"${isClosed(entry.date) ? ' disabled title="Período cerrado"' : ""}>Editar</button>
+    </article>`).join("") : '<p class="empty">No hay registros para este año.</p>';
+}
+$("#personYear").addEventListener("change", renderPersonProfile);
+function openPersonProfile(personId) {
+  if (!state.employees.some((person) => person.id === personId)) return;
+  activePersonId = personId;
+  $("#personYear").value = "";
+  renderPersonProfile();
+  if (location.hash !== "#ficha") history.pushState(null, "", "#ficha");
+  showView("ficha");
 }
 function renderHistory() {
   const search = normalize($("#historySearch").value.trim());
@@ -499,6 +554,8 @@ function render() {
   renderHolidayFilter();
   for (const [elementId, value] of [
     ["pending", "pendiente"],
+    ["freePending", "libre_pendiente"],
+    ["freeEnjoyed", "libre_disfrutado"],
     ["enjoyed", "disfrutado"],
     ["paymentPending", "pago_pendiente"],
     ["paid", "pagado"],
@@ -513,7 +570,7 @@ function render() {
   $("#rows").innerHTML = rows
     .map(
       (x) =>
-        `<tr><td data-label="Fecha">${escapeHtml(displayDate(x.date))}</td><td data-label="Colaborador">${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</td><td data-label="Empresa">${escapeHtml(employee(x)?.company || "—")}</td><td data-label="Tipo"><span class="pill ${x.type === "feriado" ? "feriado" : ""}">${x.type === "feriado" ? "Feriado" : "Ordinario"}</span></td><td data-label="Estado"><span class="tracking tracking-${escapeHtml(x.trackingState || "no_aplica")}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState] || TRACKING.no_aplica)}</span></td><td data-label="Comentarios">${escapeHtml(x.note) || '<span class="muted">—</span>'}</td><td data-label="Acciones"><div class="actions"><button class="link" data-edit="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""}>Editar</button><button class="link danger" data-delete="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""}>Eliminar</button></div></td></tr>`,
+        `<tr><td data-label="Fecha">${escapeHtml(displayDate(x.date))}</td><td data-label="Colaborador">${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</td><td data-label="Empresa">${escapeHtml(employee(x)?.company || "—")}</td><td data-label="Tipo"><span class="pill ${x.type === "feriado" ? "feriado" : ""}">${x.type === "feriado" ? "Feriado" : "Ordinario"}</span></td><td data-label="Estado"><span class="tracking tracking-${escapeHtml(x.trackingState || "no_aplica")}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState] || TRACKING.no_aplica)}</span>${x.paidAt ? `<small class="status-date">Pago: ${escapeHtml(displayDate(x.paidAt))}</small>` : ""}${x.compensatoryDate ? `<small class="status-date">Día libre: ${escapeHtml(displayDate(x.compensatoryDate))}</small>` : ""}</td><td data-label="Comentarios">${escapeHtml(x.note) || '<span class="muted">—</span>'}</td><td data-label="Acciones"><div class="actions"><button class="link" data-edit="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""}>Editar</button><button class="link danger" data-delete="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""}>Eliminar</button></div></td></tr>`,
     )
     .join("");
   const visiblePeople = state.employees.filter((person) => !teamFilter || person.company === teamFilter);
@@ -540,6 +597,7 @@ function render() {
   renderPending();
   renderReports();
   renderHistory();
+  renderPersonProfile();
 }
 function renderHolidays() {
   const year = $("#holidayYear").value;
@@ -553,7 +611,7 @@ function renderHolidays() {
     const month = new Intl.DateTimeFormat("es-CR", {month: "short", timeZone: "UTC"}).format(date).replace(".", "").toLocaleUpperCase("es");
     const weekday = new Intl.DateTimeFormat("es-CR", {weekday: "long", timeZone: "UTC"}).format(date);
     const records = state.entries.filter((entry) => entry.date === holiday.date);
-    const pending = records.filter((entry) => ["pendiente", "pago_pendiente"].includes(entry.trackingState)).length;
+    const pending = records.filter((entry) => PENDING_STATES.includes(entry.trackingState)).length;
     return `<article class="holiday-card">
       <div class="holiday-card-main">
         <time class="holiday-date" datetime="${escapeHtml(holiday.date)}"><span>${escapeHtml(month)}</span><strong>${escapeHtml(holiday.date.slice(8, 10))}</strong></time>
@@ -561,7 +619,7 @@ function renderHolidays() {
           <div class="holiday-meta"><span>${records.length} registro${records.length === 1 ? "" : "s"}</span>${pending ? `<span class="holiday-pending">${pending} pendiente${pending === 1 ? "" : "s"}</span>` : ""}</div>
         </div>
       </div>
-      <div class="holiday-actions"><button type="button" class="secondary holiday-bulk-button" data-bulk-holiday="${escapeHtml(holiday.date)}"${isClosed(holiday.date) ? " disabled title=\"Período cerrado\"" : ""} aria-label="Registrar colaboradores para ${escapeHtml(holiday.name)}">Registrar colaboradores</button><button type="button" class="link" data-edit-holiday="${escapeHtml(holiday.id)}"${isClosed(holiday.date) ? " disabled title=\"Período cerrado\"" : ""} aria-label="Editar ${escapeHtml(holiday.name)}">Editar</button><button type="button" class="link danger" data-delete-holiday="${escapeHtml(holiday.id)}"${isClosed(holiday.date) ? " disabled title=\"Período cerrado\"" : ""} aria-label="Eliminar ${escapeHtml(holiday.name)}">Eliminar</button></div>
+      <div class="holiday-actions"><button type="button" class="secondary" data-calendar-date="${escapeHtml(holiday.date)}" aria-label="Ver detalle de ${escapeHtml(holiday.name)}">Ver detalle</button><button type="button" class="secondary holiday-bulk-button" data-bulk-holiday="${escapeHtml(holiday.date)}"${isClosed(holiday.date) ? " disabled title=\"Período cerrado\"" : ""} aria-label="Registrar colaboradores para ${escapeHtml(holiday.name)}">Registrar colaboradores</button><button type="button" class="link" data-edit-holiday="${escapeHtml(holiday.id)}"${isClosed(holiday.date) ? " disabled title=\"Período cerrado\"" : ""} aria-label="Editar ${escapeHtml(holiday.name)}">Editar</button><button type="button" class="link danger" data-delete-holiday="${escapeHtml(holiday.id)}"${isClosed(holiday.date) ? " disabled title=\"Período cerrado\"" : ""} aria-label="Eliminar ${escapeHtml(holiday.name)}">Eliminar</button></div>
     </article>`;
   }).join("") : '<p class="empty holiday-empty">No hay feriados registrados para este año. Agregá el primero con el botón de arriba.</p>';
 }
@@ -591,30 +649,63 @@ function renderCalendar() {
   }
   $("#calendarGrid").innerHTML = cells.join("");
 }
+function renderCalendarDayList() {
+  const dialog = $("#calendarDayDialog");
+  const date = dialog.dataset.date;
+  const filter = dialog.dataset.filter || "todos";
+  const entries = state.entries.filter((entry) => entry.date === date)
+    .sort((a, b) => (employee(a)?.company || "").localeCompare(employee(b)?.company || "", "es") ||
+      (employee(a)?.name || "").localeCompare(employee(b)?.name || "", "es"));
+  const recorded = new Set(entries.map((entry) => entry.employeeId));
+  const missing = state.employees.filter((person) => !recorded.has(person.id))
+    .sort((a, b) => a.company.localeCompare(b.company, "es") || a.name.localeCompare(b.name, "es"));
+  const counts = {
+    todos: entries.length, trabajaron: entries.filter((entry) => WORKED_STATES.includes(entry.trackingState)).length,
+    no_laboro: entries.filter((entry) => entry.trackingState === "no_laboro").length,
+    pago_pendiente: entries.filter((entry) => entry.trackingState === "pago_pendiente").length,
+    libre_pendiente: entries.filter((entry) => entry.trackingState === "libre_pendiente").length,
+    sin_registro: missing.length,
+  };
+  const labels = {todos:"Todos", trabajaron:"Trabajaron", no_laboro:"No laboró",
+    pago_pendiente:"Pago pendiente", libre_pendiente:"Libre pendiente", sin_registro:"Sin registro"};
+  $("#calendarDaySummary").innerHTML = Object.entries(labels).map(([key, label]) =>
+    `<button type="button" class="day-summary-chip${filter === key ? " active" : ""}" data-day-filter="${key}" aria-pressed="${filter === key}"><span>${escapeHtml(label)}</span><strong>${counts[key]}</strong></button>`).join("");
+  const visible = entries.filter((entry) => filter === "todos" ||
+    filter === "trabajaron" && WORKED_STATES.includes(entry.trackingState) ||
+    filter === entry.trackingState);
+  $("#calendarDayEntries").innerHTML = filter === "sin_registro"
+    ? (missing.length ? missing.map((person) => `<div class="calendar-detail-row"><div class="calendar-detail-person"><strong>${escapeHtml(person.name)}</strong><small>${escapeHtml(person.company)} · Sin registro en esta fecha</small></div></div>`).join("")
+      : '<p class="calendar-detail-empty">Todos los colaboradores tienen registro en esta fecha.</p>')
+    : (visible.length ? visible.map((entry) => `<div class="calendar-detail-row">
+        <div class="calendar-detail-person"><strong>${escapeHtml(employee(entry)?.name || "Colaborador eliminado")}</strong><small>${escapeHtml(employee(entry)?.company || "—")} · ${entry.type === "feriado" ? "Feriado" : "Ordinario"}</small></div>
+        <span class="tracking tracking-${escapeHtml(entry.trackingState || "no_aplica")}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[entry.trackingState] || TRACKING.no_aplica)}</span>
+        ${entry.paidAt ? `<p class="calendar-detail-note">Pagado: ${escapeHtml(displayDate(entry.paidAt))}</p>` : ""}
+        ${entry.compensatoryDate ? `<p class="calendar-detail-note">Día libre disfrutado: ${escapeHtml(displayDate(entry.compensatoryDate))}</p>` : ""}
+        ${entry.note ? `<p class="calendar-detail-note">${escapeHtml(entry.note)}</p>` : ""}
+        <button type="button" class="secondary calendar-detail-edit" data-day-edit="${escapeHtml(entry.id)}"${isClosed(entry.date) ? ' disabled title="Período cerrado"' : ""} aria-label="Editar registro de ${escapeHtml(employee(entry)?.name || "colaborador")}">Editar</button>
+      </div>`).join("") : '<p class="calendar-detail-empty">No hay registros en esta categoría.</p>');
+}
+$("#calendarDaySummary").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-day-filter]");
+  if (!button) return;
+  $("#calendarDayDialog").dataset.filter = button.dataset.dayFilter;
+  renderCalendarDayList();
+});
 function openCalendarDay(date) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
   const dialog = $("#calendarDayDialog");
-  const holiday = state.holidays.find((x) => x.date === date);
-  const entries = state.entries
-    .filter((x) => x.date === date)
-    .sort((a, b) => (employee(a)?.company || "").localeCompare(employee(b)?.company || "", "es") ||
-      (employee(a)?.name || "").localeCompare(employee(b)?.name || "", "es"));
+  const holiday = state.holidays.find((item) => item.date === date);
   dialog.dataset.date = date;
+  dialog.dataset.filter = "todos";
   $("#calendarDayTitle").textContent = new Intl.DateTimeFormat("es-CR", {
-    day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+    day:"numeric", month:"long", year:"numeric", timeZone:"UTC",
   }).format(new Date(date + "T12:00:00Z"));
   $("#calendarDayHoliday").textContent = holiday ? holiday.name : "Día sin feriado registrado";
   $("#calendarDayBulk").hidden = !holiday || isClosed(date);
   $("#calendarDayAdd").hidden = isClosed(date);
-  $("#calendarDayCount").textContent = `${entries.length} colaborador${entries.length === 1 ? "" : "es"} registrado${entries.length === 1 ? "" : "s"}${isClosed(date) ? " · Período cerrado" : ""}`;
-  $("#calendarDayEntries").innerHTML = entries.length
-    ? entries.map((x) => `<div class="calendar-detail-row">
-        <div class="calendar-detail-person"><strong>${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</strong><small>${escapeHtml(employee(x)?.company || "—")} · ${x.type === "feriado" ? "Feriado" : "Ordinario"}</small></div>
-        <span class="tracking tracking-${escapeHtml(x.trackingState || "no_aplica")}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState] || TRACKING.no_aplica)}</span>
-        ${x.note ? `<p class="calendar-detail-note">${escapeHtml(x.note)}</p>` : ""}
-        <button type="button" class="secondary calendar-detail-edit" data-day-edit="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""} aria-label="Editar registro de ${escapeHtml(employee(x)?.name || "colaborador")}">Editar</button>
-      </div>`).join("")
-    : '<p class="calendar-detail-empty">No hay colaboradores registrados en esta fecha.</p>';
+  const total = state.entries.filter((entry) => entry.date === date).length;
+  $("#calendarDayCount").textContent = `${total} colaborador${total === 1 ? "" : "es"} registrado${total === 1 ? "" : "s"}${isClosed(date) ? " · Período cerrado" : ""}`;
+  renderCalendarDayList();
   dialog.showModal();
 }
 function renderMatrix() {
@@ -637,7 +728,7 @@ function renderMatrix() {
   $("#matrixBody").innerHTML = people.map((person) => `<tr><th scope="row"><strong>${escapeHtml(person.name)}</strong><small>${escapeHtml(person.company)}</small></th>${dates.map(([date]) => { const entry = state.entries.find((x) => x.employeeId === person.id && x.date === date); return `<td>${entry ? `<span class="tracking tracking-${escapeHtml(entry.trackingState)}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[entry.trackingState])}</span>` : '<span class="muted">—</span>'}</td>`; }).join("")}</tr>`).join("");
 }
 function renderPending() {
-  const entries = state.entries.filter((x) => x.trackingState === "pendiente" || x.trackingState === "pago_pendiente").sort((a,b) => a.date.localeCompare(b.date));
+  const entries = state.entries.filter((x) => PENDING_STATES.includes(x.trackingState)).sort((a,b) => a.date.localeCompare(b.date));
   $("#pendingCount").textContent = `${entries.length} pendiente${entries.length === 1 ? "" : "s"}`;
   $("#pendingList").innerHTML = entries.length ? entries.map((x) => `<div class="pending-item"><div><strong>${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</strong><small>${escapeHtml(employee(x)?.company || "—")} · ${escapeHtml(displayDate(x.date))}</small></div><span class="tracking tracking-${escapeHtml(x.trackingState)}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState])}</span><button type="button" class="link" data-edit="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""}>Editar</button></div>`).join("") : '<p class="empty">No hay registros pendientes.</p>';
 }
@@ -659,7 +750,7 @@ function reportRecords() {
       if (reportKind === "mensual") return entry.date.startsWith(year + "-" + month);
       if (reportKind === "anual") return entry.date.startsWith(year + "-");
       return !!cutoff && entry.date <= cutoff &&
-        ["pendiente", "pago_pendiente"].includes(entry.trackingState);
+        PENDING_STATES.includes(entry.trackingState);
     })
     .sort((a,b) => a.date.localeCompare(b.date) ||
       (employee(a)?.company || "").localeCompare(employee(b)?.company || "", "es") ||
@@ -698,6 +789,8 @@ function renderReports() {
     ["Disfrutado", rows.filter((x) => x.trackingState === "disfrutado").length],
     ["Pago pendiente", rows.filter((x) => x.trackingState === "pago_pendiente").length],
     ["Pagado", rows.filter((x) => x.trackingState === "pagado").length],
+    ["Libre pendiente", rows.filter((x) => x.trackingState === "libre_pendiente").length],
+    ["Libre disfrutado", rows.filter((x) => x.trackingState === "libre_disfrutado").length],
   ];
   $("#reportSummary").innerHTML = counts.map(([label, count]) =>
     `<div><span>${label}</span><strong>${count}</strong></div>`).join("");
@@ -706,13 +799,25 @@ function renderReports() {
     const person = employee(entry);
     const dayName = holidayNames.get(entry.date) ||
       (entry.type === "feriado" ? "Feriado registrado" : "Día ordinario");
-    return `<tr><td>${escapeHtml(displayDate(entry.date))}</td><td>${escapeHtml(dayName)}</td><td>${escapeHtml(person?.name || "Colaborador eliminado")}</td><td>${escapeHtml(person?.company || "—")}</td><td>${escapeHtml(TRACKING[entry.trackingState] || TRACKING.no_aplica)}</td><td>${escapeHtml(entry.note || "—")}</td></tr>`;
+    return `<tr><td>${escapeHtml(displayDate(entry.date))}</td><td>${escapeHtml(dayName)}</td><td>${escapeHtml(person?.name || "Colaborador eliminado")}</td><td>${escapeHtml(person?.company || "—")}</td><td>${escapeHtml(TRACKING[entry.trackingState] || TRACKING.no_aplica)}</td><td>${escapeHtml(displayDate(entry.paidAt) || "—")}</td><td>${escapeHtml(displayDate(entry.compensatoryDate) || "—")}</td><td>${escapeHtml(entry.note || "—")}</td></tr>`;
   }).join("");
   $("#reportEmpty").hidden = rows.length > 0;
   $("#reportFootnote").textContent = reportKind === "pendientes"
-    ? "Se muestran los registros fechados hasta el cierre que actualmente tienen estado Pendiente o Trabajado – Pago pendiente."
+    ? "Se muestran los registros pendientes de revisión, pago o día libre hasta la fecha de corte."
     : "Los estados reflejan la información actual de los registros.";
 }
+function updateEntryStatusFields() {
+  const status = $("#entryForm").elements.trackingState.value;
+  $("#paidAtWrap").hidden = status !== "pagado";
+  $("#compensatoryDateWrap").hidden = status !== "libre_disfrutado";
+  $("#entryStatusHelp").textContent = {
+    libre_pendiente: "Trabajó el feriado y todavía se le debe un día libre.",
+    libre_disfrutado: "Trabajó el feriado y ya disfrutó su día libre. Anotá la fecha si la conocés.",
+    pagado: "Trabajó el feriado y recibió el pago. Anotá la fecha si la conocés.",
+    no_laboro: "No trabajó este feriado.",
+  }[status] || "";
+}
+$("#entryForm").elements.trackingState.addEventListener("change", updateEntryStatusFields);
 function openEntry(x, selectedDate) {
   if (!ensureOpen(x?.date, selectedDate)) return;
   if (!state.employees.length) {
@@ -728,6 +833,9 @@ function openEntry(x, selectedDate) {
       f.elements[k].value = x[k] ?? "";
   } else f.elements.type.value = "feriado";
   f.elements.trackingState.value = x?.trackingState || "";
+  f.elements.paidAt.value = x?.paidAt || "";
+  f.elements.compensatoryDate.value = x?.compensatoryDate || "";
+  updateEntryStatusFields();
   $("#dialogTitle").textContent = x ? "Editar registro" : "Nuevo registro";
   $("#entryDialog").showModal();
 }
@@ -776,6 +884,8 @@ $("#entryForm").onsubmit = (e) => {
     return alert("Ingresá una fecha válida.");
   if (!Object.hasOwn(TRACKING, v.trackingState))
     return alert("Seleccioná un estado válido.");
+  if (v.paidAt && !validISODate(v.paidAt)) return alert("Revisá la fecha de pago.");
+  if (v.compensatoryDate && !validISODate(v.compensatoryDate)) return alert("Revisá la fecha del día libre.");
   const original = state.entries.find((item) => item.id === editing);
   if (!ensureOpen(original?.date, v.date)) return;
   if (
@@ -793,6 +903,8 @@ $("#entryForm").onsubmit = (e) => {
     date: v.date,
     type: v.type,
     trackingState: v.trackingState,
+    paidAt: v.trackingState === "pagado" ? v.paidAt || "" : "",
+    compensatoryDate: v.trackingState === "libre_disfrutado" ? v.compensatoryDate || "" : "",
     note: v.note.trim(),
   };
   if (editing)
@@ -857,9 +969,14 @@ function renderBulkRows() {
   $("#bulkRows").innerHTML = people.length ? people.map((person) => {
     const existing = state.entries.find((entry) => entry.date === date && entry.employeeId === person.id);
     if (!bulkDraft.has(person.id))
-      bulkDraft.set(person.id, {status: existing?.trackingState || "", note: existing?.note || ""});
+      bulkDraft.set(person.id, {status: existing?.trackingState || "", note: existing?.note || "",
+        paidAt: existing?.paidAt || "", compensatoryDate: existing?.compensatoryDate || ""});
     const draft = bulkDraft.get(person.id);
     const shortCompany = person.company === companies[0] ? "Monte Carlo" : "Jacó Beach Onsite";
+    const dateField = draft.status === "pagado"
+      ? `<label class="field bulk-date">Fecha de pago (opcional)<input type="date" data-bulk-paid value="${escapeHtml(draft.paidAt)}" aria-label="Fecha de pago de ${escapeHtml(person.name)}" /></label>`
+      : draft.status === "libre_disfrutado"
+      ? `<label class="field bulk-date">Día libre disfrutado (opcional)<input type="date" data-bulk-free value="${escapeHtml(draft.compensatoryDate)}" aria-label="Día libre de ${escapeHtml(person.name)}" /></label>` : "";
     return `<div class="bulk-row" data-bulk-person="${escapeHtml(person.id)}">
       <div class="bulk-person"><strong>${escapeHtml(person.name)}</strong><small>${escapeHtml(shortCompany)}${existing ? " · Ya registrado" : ""}</small></div>
       <label class="field">Estado
@@ -871,6 +988,7 @@ function renderBulkRows() {
       <label class="field">Comentario
         <input data-bulk-note aria-label="Comentario de ${escapeHtml(person.name)}" maxlength="500" value="${escapeHtml(draft.note)}" placeholder="Opcional" />
       </label>
+      ${dateField}
     </div>`;
   }).join("") : '<p class="empty">No hay colaboradores en esta empresa.</p>';
 }
@@ -880,10 +998,13 @@ function collectBulkChanges(date) {
     if (!state.employees.some((person) => person.id === employeeId)) continue;
     const note = draft.note.trim();
     const existing = state.entries.find((entry) => entry.date === date && entry.employeeId === employeeId);
-    if (!draft.status) continue;
-    if (!Object.hasOwn(TRACKING, draft.status)) continue;
-    if (!existing || existing.trackingState !== draft.status || (existing.note || "") !== note || existing.type !== "feriado")
-      changes.push({employeeId, existing, status: draft.status, note});
+    if (!draft.status || !Object.hasOwn(TRACKING, draft.status)) continue;
+    const paidAt = draft.status === "pagado" ? draft.paidAt || "" : "";
+    const compensatoryDate = draft.status === "libre_disfrutado" ? draft.compensatoryDate || "" : "";
+    if (!existing || existing.trackingState !== draft.status || (existing.note || "") !== note ||
+        existing.type !== "feriado" || (existing.paidAt || "") !== paidAt ||
+        (existing.compensatoryDate || "") !== compensatoryDate)
+      changes.push({employeeId, existing, status: draft.status, note, paidAt, compensatoryDate});
   }
   return changes;
 }
@@ -909,14 +1030,19 @@ function openBulk(preferredDate) {
 $("#bulkRows").addEventListener("input", (event) => {
   const row = event.target.closest("[data-bulk-person]");
   if (!row) return;
+  const previous = bulkDraft.get(row.dataset.bulkPerson) || {};
   bulkDraft.set(row.dataset.bulkPerson, {
     status: row.querySelector("[data-bulk-state]").value,
     note: row.querySelector("[data-bulk-note]").value,
+    paidAt: row.querySelector("[data-bulk-paid]")?.value ?? previous.paidAt ?? "",
+    compensatoryDate: row.querySelector("[data-bulk-free]")?.value ?? previous.compensatoryDate ?? "",
   });
 });
 $("#bulkRows").addEventListener("change", (event) => {
-  if (event.target.matches("[data-bulk-state]"))
+  if (event.target.matches("[data-bulk-state]")) {
     event.target.dispatchEvent(new Event("input", {bubbles: true}));
+    renderBulkRows();
+  }
 });
 $("#bulkCompany").addEventListener("change", renderBulkRows);
 $("#bulkHoliday").addEventListener("change", () => {
@@ -945,14 +1071,20 @@ $("#bulkForm").onsubmit = (event) => {
     return alert("Hay un comentario sin estado. Escogé el estado de esa persona o borrá el comentario.");
   const changes = collectBulkChanges(date);
   if (!changes.length) return alert("No hay cambios para guardar.");
+  if (changes.some((change) => change.paidAt && !validISODate(change.paidAt) ||
+      change.compensatoryDate && !validISODate(change.compensatoryDate)))
+    return alert("Revisá las fechas de pago o día libre.");
   for (const change of changes) {
     if (change.existing) {
       change.existing.trackingState = change.status;
+      change.existing.paidAt = change.paidAt;
+      change.existing.compensatoryDate = change.compensatoryDate;
       change.existing.note = change.note;
       change.existing.type = "feriado";
     } else state.entries.push({
       id: id(), employeeId: change.employeeId, date, type: "feriado",
-      trackingState: change.status, note: change.note,
+      trackingState: change.status, paidAt: change.paidAt,
+      compensatoryDate: change.compensatoryDate, note: change.note,
     });
   }
   $("#month").value = date.slice(0, 7);
@@ -1013,7 +1145,9 @@ document.addEventListener("click", (e) => {
     del = e.target.closest("[data-delete]"),
     remove = e.target.closest("[data-remove-employee]"),
     editEmployee = e.target.closest("[data-edit-employee]"),
-    newForEmployee = e.target.closest("[data-new-for-employee]");
+    newForEmployee = e.target.closest("[data-new-for-employee]"),
+    profile = e.target.closest("[data-profile]");
+  if (profile) openPersonProfile(profile.dataset.profile);
   if (newForEmployee) {
     openEntry(null);
     $("#entryForm").elements.employeeId.value = newForEmployee.dataset.newForEmployee;
@@ -1112,7 +1246,7 @@ document.addEventListener("keydown", (event) => {
     $("#menuToggle").focus();
   }
 });
-const views = new Set(["inicio", "resumen", "calendario", "registro", "matriz", "pendientes", "equipo", "feriados", "reportes", "historial", "configuracion"]);
+const views = new Set(["inicio", "resumen", "calendario", "registro", "matriz", "pendientes", "equipo", "ficha", "feriados", "reportes", "historial", "configuracion"]);
 function showView(view, scroll = true) {
   const selected = views.has(view) ? view : "inicio";
   document.body.dataset.view = selected;
@@ -1283,6 +1417,8 @@ $("#importBackupFile").addEventListener("change", async (event) => {
         type:incoming.type === "ordinario" ? "ordinario" : "feriado",
         trackingState:Object.hasOwn(TRACKING, incoming.trackingState) ? incoming.trackingState : "no_aplica",
         note:String(incoming.note || "").trim().slice(0, 500),
+        paidAt:incoming.trackingState === "pagado" && validISODate(incoming.paidAt) ? incoming.paidAt : "",
+        compensatoryDate:incoming.trackingState === "libre_disfrutado" && validISODate(incoming.compensatoryDate) ? incoming.compensatoryDate : "",
       };
       const index = candidate.entries.findIndex((item) =>
         item.employeeId === mappedEmployeeId && item.date === incoming.date);
@@ -1347,7 +1483,7 @@ $("#backup").onclick = () =>
   download(
     `jornadas-respaldo-${new Date().toISOString().slice(0, 10)}.json`,
     JSON.stringify(
-      { ...state, version: 8, exportedAt: new Date().toISOString() },
+      { ...state, version: 9, exportedAt: new Date().toISOString() },
       null,
       2,
     ),
@@ -1361,6 +1497,8 @@ $("#exportCsv").onclick = () => {
       "Empresa",
       "Tipo de día",
       "Estado",
+      "Fecha de pago",
+      "Día libre disfrutado",
       "Comentarios",
     ],
     data = filters().map((x) => [
@@ -1369,6 +1507,8 @@ $("#exportCsv").onclick = () => {
       employee(x)?.company || "",
       x.type,
       TRACKING[x.trackingState] || TRACKING.no_aplica,
+      x.paidAt || "",
+      x.compensatoryDate || "",
       x.note,
     ]);
   download(
@@ -1395,13 +1535,13 @@ document.querySelectorAll("[data-report-kind]").forEach((button) => button.addEv
 $("#printReport").onclick = () => window.print();
 $("#downloadReport").onclick = () => {
   const names = new Map(state.holidays.map((x) => [x.date, x.name]));
-  const header = ["Fecha", "Feriado / día", "Colaborador", "Empresa", "Tipo de día", "Estado", "Comentarios"];
+  const header = ["Fecha", "Feriado / día", "Colaborador", "Empresa", "Tipo de día", "Estado", "Fecha de pago", "Día libre disfrutado", "Comentarios"];
   const data = reportRecords().map((entry) => {
     const person = employee(entry);
     return [entry.date, names.get(entry.date) || (entry.type === "feriado" ? "Feriado registrado" : "Día ordinario"),
       person?.name || "Colaborador eliminado", person?.company || "",
       entry.type === "feriado" ? "Feriado" : "Ordinario",
-      TRACKING[entry.trackingState] || TRACKING.no_aplica, entry.note || ""];
+      TRACKING[entry.trackingState] || TRACKING.no_aplica, entry.paidAt || "", entry.compensatoryDate || "", entry.note || ""];
   });
   const period = reportKind === "pendientes" ? $("#reportCutoff").value :
     $("#reportYear").value + (reportKind === "mensual" ? "-" + $("#reportMonth").value : "");
