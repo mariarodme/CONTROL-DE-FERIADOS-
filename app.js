@@ -705,13 +705,20 @@ function renderTasks(month) {
       const recorded = new Set(state.entries.filter((entry) => entry.date === holiday.date).map((entry) => entry.employeeId));
       return {holiday, missing:state.employees.filter((person) => personEmployedOn(person, holiday.date) && !recorded.has(person.id)).length};
     }).filter((item) => item.missing);
-  const total = pending.length + due.length;
-  $("#taskCount").textContent = total + (total === 1 ? " asunto" : " asuntos");
-  $("#taskIntro").textContent = `${pending.length} registro${pending.length === 1 ? "" : "s"} pendiente${pending.length === 1 ? "" : "s"} · ${due.length} feriado${due.length === 1 ? "" : "s"} con personas sin registrar`;
-  $("#taskList").innerHTML = total ? [
+  const rows = [
     ...pending.map((entry) => `<div class="task-row"><div><strong>${escapeHtml(TRACKING[entry.trackingState])}</strong><small>${escapeHtml(employee(entry)?.name || "Colaborador eliminado")} · ${escapeHtml(displayDate(entry.date))}</small></div><button type="button" class="secondary" data-task-edit="${escapeHtml(entry.id)}" ${isClosed(entry.date) ? 'disabled title="Período cerrado"' : ""}>Revisar</button></div>`),
     ...due.map(({holiday,missing}) => `<div class="task-row"><div><strong>${escapeHtml(holiday.name)} · ${missing} sin registro</strong><small>${escapeHtml(displayDate(holiday.date))} · Revisá quién falta</small></div><button type="button" class="secondary" data-task-date="${escapeHtml(holiday.date)}">Ver feriado</button></div>`)
-  ].join("") : '<p class="task-empty">No hay asuntos por resolver en este mes.</p>';
+  ];
+  const total = rows.length;
+  const countText = total + (total === 1 ? " asunto" : " asuntos");
+  $("#taskCount").textContent = countText;
+  $("#homeTaskCount").textContent = countText;
+  $("#homeTaskPeriod").textContent = monthLabel(month) + " · pagos, días libres y feriados sin completar";
+  $("#taskIntro").textContent = `${pending.length} registro${pending.length === 1 ? "" : "s"} pendiente${pending.length === 1 ? "" : "s"} · ${due.length} feriado${due.length === 1 ? "" : "s"} con personas sin registrar`;
+  $("#taskList").innerHTML = total ? rows.join("") : '<p class="task-empty">No hay asuntos por resolver en este mes.</p>';
+  $("#homeTaskList").innerHTML = total ? rows.slice(0, 3).join("") : '<p class="task-empty">Todo está al día para este mes.</p>';
+  $("#homeTaskMore").hidden = total <= 3;
+  $("#homeTaskList").closest(".home-urgent").classList.toggle("has-urgent", total > 0);
 }
 document.addEventListener("click", (event) => {
   const edit = event.target.closest("[data-task-edit]");
@@ -1518,6 +1525,10 @@ document.addEventListener("click", (event) => {
   }
   if (location.hash !== `#${view}`) history.pushState(null, "", `#${view}`);
   showView(view);
+  if (link.id === "homeTaskMore") requestAnimationFrame(() => {
+    const panel = $("#taskList").closest(".task-panel");
+    panel?.scrollIntoView({block:"start", behavior:"smooth"});
+  });
 });
 window.addEventListener("popstate", () => showView(location.hash.slice(1)));
 window.addEventListener("hashchange", () => showView(location.hash.slice(1)));
