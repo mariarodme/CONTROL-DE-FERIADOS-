@@ -610,3 +610,12 @@ button:disabled { cursor:not-allowed; opacity:.5; }
 .close-review-ok { margin:.2rem 0; color:#416b4a; }
 .close-review-note { color:#657364; font-size:.9rem; line-height:1.5; }
 @media (max-width:600px) { .close-review-dialog { padding:1rem; } .close-review-holiday summary { flex-direction:column; gap:.2rem; } }
+
+.local-backups { margin-top:1.3rem; padding:1rem; background:#f8f8f4; border:1px solid #d9dfd4; border-radius:12px; }
+.local-backups h4 { margin:0 0 .4rem; }
+.local-backups p { line-height:1.45; }
+.local-backups ul { list-style:none; padding:0; margin:.75rem 0; }
+.local-backups li { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.75rem 0; border-top:1px solid #d9dfd4; }
+.local-backups li div { display:grid; gap:.2rem; }
+.local-backups li small,.local-backups>small { color:#667268; }
+@media (max-width:600px) { .local-backups li { align-items:stretch; flex-direction:column; } }
