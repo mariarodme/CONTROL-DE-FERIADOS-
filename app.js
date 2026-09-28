@@ -148,6 +148,73 @@ function businessSnapshot(data) {
   }));
 }
 let lastBusinessSnapshot = businessSnapshot(state);
+function isClosed(date) {
+  return Boolean(date && state.closedMonths?.[date.slice(0, 7)]);
+}
+function monthLabel(month) {
+  if (!/^\d{4}-\d{2}$/.test(month || "")) return month || "";
+  const [year, number] = month.split("-").map(Number);
+  return new Intl.DateTimeFormat("es-CR", {month: "long", year: "numeric", timeZone: "UTC"})
+    .format(new Date(Date.UTC(year, number - 1, 1)));
+}
+function ensureOpen(...dates) {
+  const month = dates.map((date) => date?.slice(0, 7)).find((part) => state.closedMonths?.[part]);
+  if (!month) return true;
+  alert(`El período ${monthLabel(month)} está cerrado. Reabrilo desde Resumen del período antes de modificarlo.`);
+  return false;
+}
+function protectedChange(previous, current) {
+  for (const key of ["entries", "holidays"]) {
+    const oldById = new Map(previous[key].map((item) => [item.id, item]));
+    const newById = new Map(current[key].map((item) => [item.id, item]));
+    for (const id of new Set([...oldById.keys(), ...newById.keys()])) {
+      const before = oldById.get(id), after = newById.get(id);
+      if (JSON.stringify(before) !== JSON.stringify(after)) {
+        const closed = [before?.date, after?.date].find(isClosed);
+        if (closed) return closed.slice(0, 7);
+      }
+    }
+  }
+  const oldPeople = new Map(previous.employees.map((item) => [item.id, item]));
+  const newPeople = new Map(current.employees.map((item) => [item.id, item]));
+  for (const id of new Set([...oldPeople.keys(), ...newPeople.keys()])) {
+    if (JSON.stringify(oldPeople.get(id)) === JSON.stringify(newPeople.get(id))) continue;
+    const linked = previous.entries.find((entry) => entry.employeeId === id && isClosed(entry.date));
+    if (linked) return linked.date.slice(0, 7);
+  }
+  return "";
+}
+function renderPeriodLock() {
+  const month = $("#month").value;
+  const info = state.closedMonths?.[month];
+  const label = monthLabel(month);
+  $("#periodLock").classList.toggle("is-closed", Boolean(info));
+  $("#periodLockTitle").textContent = info ? `${label} · Cerrado` : `${label} · Abierto`;
+  $("#periodLockDetail").textContent = info
+    ? "Consulta y reportes disponibles. Reabrí este mes si necesitás hacer una corrección."
+    : "Al cerrarlo se bloquean los cambios en registros y feriados de este mes.";
+  $("#periodLockAction").textContent = info ? "Reabrir mes" : "Cerrar mes";
+  $("#periodLockAction").setAttribute("aria-label", `${info ? "Reabrir" : "Cerrar"} ${label}`);
+}
+$("#periodLockAction").addEventListener("click", () => {
+  const month = $("#month").value;
+  if (!/^\d{4}-\d{2}$/.test(month)) return;
+  const previous = state.closedMonths?.[month];
+  const closed = Boolean(previous);
+  const label = monthLabel(month);
+  const pending = state.entries.filter((entry) => entry.date.startsWith(month) &&
+    ["pendiente", "pago_pendiente"].includes(entry.trackingState)).length;
+  const message = closed
+    ? `¿Reabrir ${label}? Se podrán volver a editar sus registros y feriados. Esta acción quedará en el historial.`
+    : `¿Cerrar ${label}? No se podrán agregar, editar ni eliminar sus registros y feriados hasta que lo reabras.${pending ? ` Hay ${pending} pendiente${pending === 1 ? "" : "s"} en este mes.` : ""} Esta acción quedará en el historial.`;
+  if (!confirm(message)) return;
+  if (!state.closedMonths || typeof state.closedMonths !== "object" || Array.isArray(state.closedMonths))
+    state.closedMonths = {};
+  if (closed) delete state.closedMonths[month];
+  else state.closedMonths[month] = {at: new Date().toISOString(), actor: window.jornadasCloud?.actor?.() || "Este dispositivo"};
+  save({lockEvent: {month, closed: !closed, previous}});
+});
+
 function historyDescription(entity, value) {
   if (!value) return "";
   if (entity === "colaborador") return `${value.name} · ${value.company}`;
@@ -183,9 +250,28 @@ function collectHistoryChanges(previous, current) {
 }
 function save(options = {}) {
   const previousHistory = state.history;
+  const previousLocks = options.lockEvent ? {...(state.closedMonths || {})} : null;
+  if (options.lockEvent) {
+    if (options.lockEvent.closed) delete previousLocks[options.lockEvent.month];
+    else previousLocks[options.lockEvent.month] = options.lockEvent.previous;
+  }
   const current = businessSnapshot(state);
+  const blockedMonth = protectedChange(lastBusinessSnapshot, current);
+  if (blockedMonth) {
+    state.employees = lastBusinessSnapshot.employees;
+    state.holidays = lastBusinessSnapshot.holidays;
+    state.entries = lastBusinessSnapshot.entries;
+    render();
+    alert(`El período ${monthLabel(blockedMonth)} está cerrado. Reabrilo antes de modificarlo.`);
+    return;
+  }
   const actor = window.jornadasCloud?.actor?.() || "Este dispositivo";
-  const changes = options.importSummary
+  const changes = options.lockEvent
+    ? [{id: id(), at: new Date().toISOString(), actor, entity: "cierre",
+        action: options.lockEvent.closed ? "Cerró" : "Reabrió",
+        title: monthLabel(options.lockEvent.month), company: "", before: "", after:
+          options.lockEvent.closed ? "Período cerrado para evitar cambios accidentales" : "Período reabierto para correcciones"}]
+    : options.importSummary
     ? [{id: id(), at: new Date().toISOString(), actor, entity: "respaldo", action: "Importó",
         title: "Respaldo JSON", company: "", before: "", after: options.importSummary}]
     : collectHistoryChanges(lastBusinessSnapshot, current);
@@ -197,6 +283,7 @@ function save(options = {}) {
     window.jornadasCloud?.changed();
   } catch {
     state.history = previousHistory;
+    if (previousLocks) state.closedMonths = previousLocks;
     alert("No se pudo guardar. Descargá un respaldo y liberá espacio antes de continuar.");
   }
 }
@@ -279,7 +366,7 @@ function renderHistory() {
     const time = validDate ? new Intl.DateTimeFormat("es-CR", {timeStyle: "short", timeZone: "America/Costa_Rica"}).format(date) : "";
     const heading = day !== previousDay ? `<h3 class="history-day">${escapeHtml(day)}</h3>` : "";
     previousDay = day;
-    const kind = {registro: "Registro", feriado: "Feriado", colaborador: "Colaborador", respaldo: "Importación"}[event.entity] || "Cambio";
+    const kind = {registro: "Registro", feriado: "Feriado", colaborador: "Colaborador", respaldo: "Importación", cierre: "Cierre mensual"}[event.entity] || "Cambio";
     return `${heading}<article class="history-item">
       <div class="history-top"><span class="history-kind history-kind-${escapeHtml(event.entity)}">${escapeHtml(kind)}</span><span class="history-time">${escapeHtml(time)}</span></div>
       <h4>${escapeHtml(event.action)} · ${escapeHtml(event.title)}</h4>
@@ -296,6 +383,7 @@ $("#historyType").addEventListener("change", renderHistory);
 function render() {
   const month = $("#month").value,
     period = state.entries.filter((x) => !month || x.date.startsWith(month));
+  renderPeriodLock();
   $("#controlMonth").value = month;
   renderHolidayFilter();
   for (const [elementId, value] of [
@@ -314,7 +402,7 @@ function render() {
   $("#rows").innerHTML = rows
     .map(
       (x) =>
-        `<tr><td data-label="Fecha">${escapeHtml(displayDate(x.date))}</td><td data-label="Colaborador">${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</td><td data-label="Empresa">${escapeHtml(employee(x)?.company || "—")}</td><td data-label="Tipo"><span class="pill ${x.type === "feriado" ? "feriado" : ""}">${x.type === "feriado" ? "Feriado" : "Ordinario"}</span></td><td data-label="Estado"><span class="tracking tracking-${escapeHtml(x.trackingState || "no_aplica")}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState] || TRACKING.no_aplica)}</span></td><td data-label="Comentarios">${escapeHtml(x.note) || '<span class="muted">—</span>'}</td><td data-label="Acciones"><div class="actions"><button class="link" data-edit="${escapeHtml(x.id)}">Editar</button><button class="link danger" data-delete="${escapeHtml(x.id)}">Eliminar</button></div></td></tr>`,
+        `<tr><td data-label="Fecha">${escapeHtml(displayDate(x.date))}</td><td data-label="Colaborador">${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</td><td data-label="Empresa">${escapeHtml(employee(x)?.company || "—")}</td><td data-label="Tipo"><span class="pill ${x.type === "feriado" ? "feriado" : ""}">${x.type === "feriado" ? "Feriado" : "Ordinario"}</span></td><td data-label="Estado"><span class="tracking tracking-${escapeHtml(x.trackingState || "no_aplica")}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState] || TRACKING.no_aplica)}</span></td><td data-label="Comentarios">${escapeHtml(x.note) || '<span class="muted">—</span>'}</td><td data-label="Acciones"><div class="actions"><button class="link" data-edit="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""}>Editar</button><button class="link danger" data-delete="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""}>Eliminar</button></div></td></tr>`,
     )
     .join("");
   const visiblePeople = state.employees.filter((person) => !teamFilter || person.company === teamFilter);
@@ -362,7 +450,7 @@ function renderHolidays() {
           <div class="holiday-meta"><span>${records.length} registro${records.length === 1 ? "" : "s"}</span>${pending ? `<span class="holiday-pending">${pending} pendiente${pending === 1 ? "" : "s"}</span>` : ""}</div>
         </div>
       </div>
-      <div class="holiday-actions"><button type="button" class="secondary holiday-bulk-button" data-bulk-holiday="${escapeHtml(holiday.date)}" aria-label="Registrar colaboradores para ${escapeHtml(holiday.name)}">Registrar colaboradores</button><button type="button" class="link" data-edit-holiday="${escapeHtml(holiday.id)}" aria-label="Editar ${escapeHtml(holiday.name)}">Editar</button><button type="button" class="link danger" data-delete-holiday="${escapeHtml(holiday.id)}" aria-label="Eliminar ${escapeHtml(holiday.name)}">Eliminar</button></div>
+      <div class="holiday-actions"><button type="button" class="secondary holiday-bulk-button" data-bulk-holiday="${escapeHtml(holiday.date)}"${isClosed(holiday.date) ? " disabled title=\"Período cerrado\"" : ""} aria-label="Registrar colaboradores para ${escapeHtml(holiday.name)}">Registrar colaboradores</button><button type="button" class="link" data-edit-holiday="${escapeHtml(holiday.id)}"${isClosed(holiday.date) ? " disabled title=\"Período cerrado\"" : ""} aria-label="Editar ${escapeHtml(holiday.name)}">Editar</button><button type="button" class="link danger" data-delete-holiday="${escapeHtml(holiday.id)}"${isClosed(holiday.date) ? " disabled title=\"Período cerrado\"" : ""} aria-label="Eliminar ${escapeHtml(holiday.name)}">Eliminar</button></div>
     </article>`;
   }).join("") : '<p class="empty holiday-empty">No hay feriados registrados para este año. Agregá el primero con el botón de arriba.</p>';
 }
@@ -405,14 +493,15 @@ function openCalendarDay(date) {
     day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
   }).format(new Date(date + "T12:00:00Z"));
   $("#calendarDayHoliday").textContent = holiday ? holiday.name : "Día sin feriado registrado";
-  $("#calendarDayBulk").hidden = !holiday;
-  $("#calendarDayCount").textContent = `${entries.length} colaborador${entries.length === 1 ? "" : "es"} registrado${entries.length === 1 ? "" : "s"}`;
+  $("#calendarDayBulk").hidden = !holiday || isClosed(date);
+  $("#calendarDayAdd").hidden = isClosed(date);
+  $("#calendarDayCount").textContent = `${entries.length} colaborador${entries.length === 1 ? "" : "es"} registrado${entries.length === 1 ? "" : "s"}${isClosed(date) ? " · Período cerrado" : ""}`;
   $("#calendarDayEntries").innerHTML = entries.length
     ? entries.map((x) => `<div class="calendar-detail-row">
         <div class="calendar-detail-person"><strong>${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</strong><small>${escapeHtml(employee(x)?.company || "—")} · ${x.type === "feriado" ? "Feriado" : "Ordinario"}</small></div>
         <span class="tracking tracking-${escapeHtml(x.trackingState || "no_aplica")}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState] || TRACKING.no_aplica)}</span>
         ${x.note ? `<p class="calendar-detail-note">${escapeHtml(x.note)}</p>` : ""}
-        <button type="button" class="secondary calendar-detail-edit" data-day-edit="${escapeHtml(x.id)}" aria-label="Editar registro de ${escapeHtml(employee(x)?.name || "colaborador")}">Editar</button>
+        <button type="button" class="secondary calendar-detail-edit" data-day-edit="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""} aria-label="Editar registro de ${escapeHtml(employee(x)?.name || "colaborador")}">Editar</button>
       </div>`).join("")
     : '<p class="calendar-detail-empty">No hay colaboradores registrados en esta fecha.</p>';
   dialog.showModal();
@@ -439,7 +528,7 @@ function renderMatrix() {
 function renderPending() {
   const entries = state.entries.filter((x) => x.trackingState === "pendiente" || x.trackingState === "pago_pendiente").sort((a,b) => a.date.localeCompare(b.date));
   $("#pendingCount").textContent = `${entries.length} pendiente${entries.length === 1 ? "" : "s"}`;
-  $("#pendingList").innerHTML = entries.length ? entries.map((x) => `<div class="pending-item"><div><strong>${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</strong><small>${escapeHtml(employee(x)?.company || "—")} · ${escapeHtml(displayDate(x.date))}</small></div><span class="tracking tracking-${escapeHtml(x.trackingState)}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState])}</span><button type="button" class="link" data-edit="${escapeHtml(x.id)}">Editar</button></div>`).join("") : '<p class="empty">No hay registros pendientes.</p>';
+  $("#pendingList").innerHTML = entries.length ? entries.map((x) => `<div class="pending-item"><div><strong>${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</strong><small>${escapeHtml(employee(x)?.company || "—")} · ${escapeHtml(displayDate(x.date))}</small></div><span class="tracking tracking-${escapeHtml(x.trackingState)}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState])}</span><button type="button" class="link" data-edit="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""}>Editar</button></div>`).join("") : '<p class="empty">No hay registros pendientes.</p>';
 }
 const REPORT_LABELS = {
   mensual: ["Reporte mensual", "Detalle de feriados y días laborados por mes."],
@@ -514,6 +603,7 @@ function renderReports() {
     : "Los estados reflejan la información actual de los registros.";
 }
 function openEntry(x, selectedDate) {
+  if (!ensureOpen(x?.date, selectedDate)) return;
   if (!state.employees.length) {
     alert("Primero agregá al menos un colaborador.");
     return;
@@ -575,6 +665,8 @@ $("#entryForm").onsubmit = (e) => {
     return alert("Ingresá una fecha válida.");
   if (!Object.hasOwn(TRACKING, v.trackingState))
     return alert("Seleccioná un estado válido.");
+  const original = state.entries.find((item) => item.id === editing);
+  if (!ensureOpen(original?.date, v.date)) return;
   if (
     state.entries.some(
       (x) =>
@@ -632,6 +724,7 @@ $("#employeeForm").onsubmit = (event) => {
   )
     return alert("Ya existe ese colaborador en esa empresa.");
   if (editingEmployee) {
+    if (!ensureOpen(...state.entries.filter((entry) => entry.employeeId === editingEmployee).map((entry) => entry.date))) return;
     const e = state.employees.find((x) => x.id === editingEmployee);
     if (!e) return alert("No se encontró el colaborador.");
     e.name = name;
@@ -684,9 +777,11 @@ function collectBulkChanges(date) {
   return changes;
 }
 function openBulk(preferredDate) {
+  if (preferredDate && !ensureOpen(preferredDate)) return;
   if (!state.employees.length) return alert("Primero agregá al menos un colaborador.");
-  const holidays = [...state.holidays].sort((a, b) => a.date.localeCompare(b.date));
-  if (!holidays.length) return alert("Primero agregá un feriado.");
+  const holidays = state.holidays.filter((holiday) => !isClosed(holiday.date))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (!holidays.length) return alert("No hay feriados abiertos para registrar. Reabrí el mes desde Resumen del período.");
   $("#bulkHoliday").innerHTML = holidays.map((holiday) =>
     `<option value="${escapeHtml(holiday.date)}">${escapeHtml(displayDate(holiday.date))} · ${escapeHtml(holiday.name)}</option>`).join("");
   const today = new Date().toLocaleDateString("en-CA");
@@ -734,6 +829,7 @@ $("#bulkForm").onsubmit = (event) => {
   const date = $("#bulkHoliday").value;
   if (!state.holidays.some((holiday) => holiday.date === date))
     return alert("Seleccioná un feriado válido.");
+  if (!ensureOpen(date)) return;
   if ([...bulkDraft.values()].some((draft) => !draft.status && draft.note.trim()))
     return alert("Hay un comentario sin estado. Escogé el estado de esa persona o borrá el comentario.");
   const changes = collectBulkChanges(date);
@@ -754,6 +850,7 @@ $("#bulkForm").onsubmit = (event) => {
   save();
 };
 function openHoliday(holiday) {
+  if (!ensureOpen(holiday?.date)) return;
   editingHoliday = holiday?.id || null;
   const form = $("#holidayForm");
   form.reset();
@@ -774,6 +871,7 @@ $("#holidayForm").onsubmit = (event) => {
   const parsed = new Date(`${date}T00:00:00Z`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(parsed.valueOf()) || parsed.toISOString().slice(0, 10) !== date)
     return alert("Seleccioná una fecha válida.");
+  if (!ensureOpen(state.holidays.find((item) => item.id === editingHoliday)?.date, date)) return;
   if (state.holidays.some((x) => x.date === date && x.id !== editingHoliday))
     return alert("Ya existe un feriado en esa fecha. Editá el existente.");
   const holiday = {id: editingHoliday || id(), name, date};
@@ -826,11 +924,11 @@ document.addEventListener("click", (e) => {
   if (bulkHoliday) openBulk(bulkHoliday.dataset.bulkHoliday);
   if (editHoliday)
     openHoliday(state.holidays.find((x) => x.id === editHoliday.dataset.editHoliday));
-  if (deleteHoliday && confirm("¿Eliminar este feriado? Los registros de colaboradores en esa fecha se conservarán.")) {
+  if (deleteHoliday && ensureOpen(state.holidays.find((item) => item.id === deleteHoliday.dataset.deleteHoliday)?.date) && confirm("¿Eliminar este feriado? Los registros de colaboradores en esa fecha se conservarán.")) {
     state.holidays = state.holidays.filter((x) => x.id !== deleteHoliday.dataset.deleteHoliday);
     save();
   }
-  if (del && confirm("¿Eliminar este registro?")) {
+  if (del && ensureOpen(state.entries.find((item) => item.id === del.dataset.delete)?.date) && confirm("¿Eliminar este registro?")) {
     state.entries = state.entries.filter((x) => x.id !== del.dataset.delete);
     save();
   }
@@ -839,6 +937,7 @@ document.addEventListener("click", (e) => {
         (z) => z.id === remove.dataset.removeEmployee,
       ),
       n = state.entries.filter((z) => z.employeeId === x.id).length;
+    if (!ensureOpen(...state.entries.filter((z) => z.employeeId === x.id).map((z) => z.date))) return;
     if (
       confirm(
         `¿Eliminar a ${x.name}? También se eliminarán sus ${n} registros. Esta acción no se puede deshacer.`,
@@ -1020,6 +1119,11 @@ $("#importBackupFile").addEventListener("change", async (event) => {
   const status = $("#importStatus");
   try {
     const imported = JSON.parse(await file.text());
+    if (!ensureOpen(...(Array.isArray(imported.entries) ? imported.entries.map((entry) => entry.date) : []),
+        ...(Array.isArray(imported.holidays) ? imported.holidays.map((holiday) => holiday.date) : []))) {
+      status.textContent = "Respaldo no importado: contiene meses cerrados. Reabrí esos meses antes de importar.";
+      return;
+    }
     if (!Array.isArray(imported.employees) || !Array.isArray(imported.entries))
       throw new Error("Formato inválido");
 
@@ -1077,7 +1181,7 @@ $("#importBackupFile").addEventListener("change", async (event) => {
       const known = new Set((state.history || []).map((event) => event.id));
       for (const event of imported.history) {
         if (!event || typeof event.id !== "string" || typeof event.at !== "string" ||
-            typeof event.title !== "string" || !["registro", "feriado", "colaborador", "respaldo"].includes(event.entity) ||
+            typeof event.title !== "string" || !["registro", "feriado", "colaborador", "respaldo", "cierre"].includes(event.entity) ||
             known.has(event.id)) continue;
         if (!Array.isArray(state.history)) state.history = [];
         state.history.push({
@@ -1114,7 +1218,7 @@ $("#backup").onclick = () =>
   download(
     `jornadas-respaldo-${new Date().toISOString().slice(0, 10)}.json`,
     JSON.stringify(
-      { ...state, version: 7, exportedAt: new Date().toISOString() },
+      { ...state, version: 8, exportedAt: new Date().toISOString() },
       null,
       2,
     ),
