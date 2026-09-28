@@ -284,7 +284,7 @@ function renderHolidays() {
           <div class="holiday-meta"><span>${records.length} registro${records.length === 1 ? "" : "s"}</span>${pending ? `<span class="holiday-pending">${pending} pendiente${pending === 1 ? "" : "s"}</span>` : ""}</div>
         </div>
       </div>
-      <div class="holiday-actions"><button type="button" class="link" data-edit-holiday="${escapeHtml(holiday.id)}" aria-label="Editar ${escapeHtml(holiday.name)}">Editar</button><button type="button" class="link danger" data-delete-holiday="${escapeHtml(holiday.id)}" aria-label="Eliminar ${escapeHtml(holiday.name)}">Eliminar</button></div>
+      <div class="holiday-actions"><button type="button" class="secondary holiday-bulk-button" data-bulk-holiday="${escapeHtml(holiday.date)}" aria-label="Registrar colaboradores para ${escapeHtml(holiday.name)}">Registrar colaboradores</button><button type="button" class="link" data-edit-holiday="${escapeHtml(holiday.id)}" aria-label="Editar ${escapeHtml(holiday.name)}">Editar</button><button type="button" class="link danger" data-delete-holiday="${escapeHtml(holiday.id)}" aria-label="Eliminar ${escapeHtml(holiday.name)}">Eliminar</button></div>
     </article>`;
   }).join("") : '<p class="empty holiday-empty">No hay feriados registrados para este año. Agregá el primero con el botón de arriba.</p>';
 }
@@ -327,6 +327,7 @@ function openCalendarDay(date) {
     day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
   }).format(new Date(date + "T12:00:00Z"));
   $("#calendarDayHoliday").textContent = holiday ? holiday.name : "Día sin feriado registrado";
+  $("#calendarDayBulk").hidden = !holiday;
   $("#calendarDayCount").textContent = `${entries.length} colaborador${entries.length === 1 ? "" : "es"} registrado${entries.length === 1 ? "" : "s"}`;
   $("#calendarDayEntries").innerHTML = entries.length
     ? entries.map((x) => `<div class="calendar-detail-row">
@@ -469,6 +470,11 @@ $("#calendarDayAdd").onclick = () => {
   $("#calendarDayDialog").close();
   openEntry(null, date);
 };
+$("#calendarDayBulk").onclick = () => {
+  const date = $("#calendarDayDialog").dataset.date;
+  $("#calendarDayDialog").close();
+  openBulk(date);
+};
 $("#entryDialog").addEventListener("close", () => {
   if (returnToCalendarDate) {
     const date = returnToCalendarDate;
@@ -478,6 +484,7 @@ $("#entryDialog").addEventListener("close", () => {
 });
 $("#newEntry").onclick = () => openEntry();
 $("#newEntryFromControl").onclick = () => openEntry();
+$("#bulkFromControl").onclick = () => openBulk();
 $("#closeDialog").onclick = $("#cancelDialog").onclick = () =>
   $("#entryDialog").close();
 $("#entryForm").onsubmit = (e) => {
@@ -555,6 +562,118 @@ $("#employeeForm").onsubmit = (event) => {
   $("#employeeDialog").close();
   save();
 };
+const bulkDraft = new Map();
+let bulkDate = "";
+function renderBulkRows() {
+  const date = $("#bulkHoliday").value;
+  const company = $("#bulkCompany").value;
+  const people = state.employees.filter((person) => !company || person.company === company)
+    .sort((a, b) => a.company.localeCompare(b.company, "es") || a.name.localeCompare(b.name, "es"));
+  const registered = people.filter((person) =>
+    state.entries.some((entry) => entry.date === date && entry.employeeId === person.id)).length;
+  $("#bulkCount").textContent = `${people.length} colaborador${people.length === 1 ? "" : "es"} · ${registered} con registro en esta fecha`;
+  $("#bulkRows").innerHTML = people.length ? people.map((person) => {
+    const existing = state.entries.find((entry) => entry.date === date && entry.employeeId === person.id);
+    if (!bulkDraft.has(person.id))
+      bulkDraft.set(person.id, {status: existing?.trackingState || "", note: existing?.note || ""});
+    const draft = bulkDraft.get(person.id);
+    const shortCompany = person.company === companies[0] ? "Monte Carlo" : "Jacó Beach Onsite";
+    return `<div class="bulk-row" data-bulk-person="${escapeHtml(person.id)}">
+      <div class="bulk-person"><strong>${escapeHtml(person.name)}</strong><small>${escapeHtml(shortCompany)}${existing ? " · Ya registrado" : ""}</small></div>
+      <label class="field">Estado
+        <select data-bulk-state aria-label="Estado de ${escapeHtml(person.name)}">
+          <option value="">Sin registrar / no cambiar</option>
+          ${Object.entries(TRACKING).map(([value, label]) => `<option value="${value}"${draft.status === value ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}
+        </select>
+      </label>
+      <label class="field">Comentario
+        <input data-bulk-note aria-label="Comentario de ${escapeHtml(person.name)}" maxlength="500" value="${escapeHtml(draft.note)}" placeholder="Opcional" />
+      </label>
+    </div>`;
+  }).join("") : '<p class="empty">No hay colaboradores en esta empresa.</p>';
+}
+function collectBulkChanges(date) {
+  const changes = [];
+  for (const [employeeId, draft] of bulkDraft) {
+    if (!state.employees.some((person) => person.id === employeeId)) continue;
+    const note = draft.note.trim();
+    const existing = state.entries.find((entry) => entry.date === date && entry.employeeId === employeeId);
+    if (!draft.status) continue;
+    if (!Object.hasOwn(TRACKING, draft.status)) continue;
+    if (!existing || existing.trackingState !== draft.status || (existing.note || "") !== note || existing.type !== "feriado")
+      changes.push({employeeId, existing, status: draft.status, note});
+  }
+  return changes;
+}
+function openBulk(preferredDate) {
+  if (!state.employees.length) return alert("Primero agregá al menos un colaborador.");
+  const holidays = [...state.holidays].sort((a, b) => a.date.localeCompare(b.date));
+  if (!holidays.length) return alert("Primero agregá un feriado.");
+  $("#bulkHoliday").innerHTML = holidays.map((holiday) =>
+    `<option value="${escapeHtml(holiday.date)}">${escapeHtml(displayDate(holiday.date))} · ${escapeHtml(holiday.name)}</option>`).join("");
+  const today = new Date().toLocaleDateString("en-CA");
+  const fallback = holidays.find((holiday) => holiday.date >= today)?.date || holidays[holidays.length - 1].date;
+  bulkDate = holidays.some((holiday) => holiday.date === preferredDate) ? preferredDate : fallback;
+  $("#bulkHoliday").value = bulkDate;
+  $("#bulkCompany").value = $("#companyFilter").value || "";
+  bulkDraft.clear();
+  renderBulkRows();
+  $("#bulkDialog").showModal();
+  $("#bulkHoliday").focus();
+}
+$("#bulkRows").addEventListener("input", (event) => {
+  const row = event.target.closest("[data-bulk-person]");
+  if (!row) return;
+  bulkDraft.set(row.dataset.bulkPerson, {
+    status: row.querySelector("[data-bulk-state]").value,
+    note: row.querySelector("[data-bulk-note]").value,
+  });
+});
+$("#bulkRows").addEventListener("change", (event) => {
+  if (event.target.matches("[data-bulk-state]"))
+    event.target.dispatchEvent(new Event("input", {bubbles: true}));
+});
+$("#bulkCompany").addEventListener("change", renderBulkRows);
+$("#bulkHoliday").addEventListener("change", () => {
+  if (collectBulkChanges(bulkDate).length &&
+      !confirm("Hay cambios sin guardar. ¿Cambiar de feriado y descartarlos?")) {
+    $("#bulkHoliday").value = bulkDate;
+    return;
+  }
+  bulkDate = $("#bulkHoliday").value;
+  bulkDraft.clear();
+  renderBulkRows();
+});
+$("#closeBulkDialog").onclick = $("#cancelBulkDialog").onclick = () => $("#bulkDialog").close();
+$("#bulkDialog").addEventListener("click", (event) => {
+  const box = $("#bulkDialog").getBoundingClientRect();
+  if (event.clientX < box.left || event.clientX > box.right ||
+      event.clientY < box.top || event.clientY > box.bottom) $("#bulkDialog").close();
+});
+$("#bulkForm").onsubmit = (event) => {
+  event.preventDefault();
+  const date = $("#bulkHoliday").value;
+  if (!state.holidays.some((holiday) => holiday.date === date))
+    return alert("Seleccioná un feriado válido.");
+  if ([...bulkDraft.values()].some((draft) => !draft.status && draft.note.trim()))
+    return alert("Hay un comentario sin estado. Escogé el estado de esa persona o borrá el comentario.");
+  const changes = collectBulkChanges(date);
+  if (!changes.length) return alert("No hay cambios para guardar.");
+  for (const change of changes) {
+    if (change.existing) {
+      change.existing.trackingState = change.status;
+      change.existing.note = change.note;
+      change.existing.type = "feriado";
+    } else state.entries.push({
+      id: id(), employeeId: change.employeeId, date, type: "feriado",
+      trackingState: change.status, note: change.note,
+    });
+  }
+  $("#month").value = date.slice(0, 7);
+  $("#holidayYear").value = date.slice(0, 4);
+  $("#bulkDialog").close();
+  save();
+};
 function openHoliday(holiday) {
   editingHoliday = holiday?.id || null;
   const form = $("#holidayForm");
@@ -602,6 +721,7 @@ document.addEventListener("click", (e) => {
     dayEdit = e.target.closest("[data-day-edit]"),
     editHoliday = e.target.closest("[data-edit-holiday]"),
     deleteHoliday = e.target.closest("[data-delete-holiday]"),
+    bulkHoliday = e.target.closest("[data-bulk-holiday]"),
     del = e.target.closest("[data-delete]"),
     remove = e.target.closest("[data-remove-employee]"),
     editEmployee = e.target.closest("[data-edit-employee]"),
@@ -624,6 +744,7 @@ document.addEventListener("click", (e) => {
     }
   }
   if (calendarDate) openCalendarDay(calendarDate.dataset.calendarDate);
+  if (bulkHoliday) openBulk(bulkHoliday.dataset.bulkHoliday);
   if (editHoliday)
     openHoliday(state.holidays.find((x) => x.id === editHoliday.dataset.editHoliday));
   if (deleteHoliday && confirm("¿Eliminar este feriado? Los registros de colaboradores en esa fecha se conservarán.")) {
