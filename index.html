@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
     <title>Control de Feriados · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260928-6" />
+    <link rel="stylesheet" href="styles.css?v=20260928-11" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -99,6 +99,13 @@
           </div>
           <div class="panel employee-panel" id="employees"></div>
         </section>
+        <section id="ficha" class="profile-section">
+          <a class="profile-back" href="#equipo">← Volver a colaboradores</a>
+          <div class="section-heading"><div><span class="team-eyebrow">FICHA DEL COLABORADOR</span><h2 id="personTitle">Elegí un colaborador</h2><p id="personCompany" class="section-intro"></p></div>
+            <label class="field compact">Año <select id="personYear" aria-label="Año de la ficha"><option value="">Todos los años</option></select></label></div>
+          <div class="profile-stats" id="personSummary"></div>
+          <div class="profile-records" id="personRecords"></div>
+        </section>
         <section id="resumen">
           <div class="section-heading">
             <div>
@@ -131,6 +138,8 @@
               <span>Trabajado – Pagado</span><strong id="paid">0</strong
               ><small>Ver registros del mes →</small>
             </a>
+            <a class="card summary-card" href="#registro" data-summary-state="libre_pendiente"><span>Día libre pendiente</span><strong id="freePending">0</strong><small>Ver registros del mes →</small></a>
+            <a class="card summary-card" href="#registro" data-summary-state="libre_disfrutado"><span>Día libre disfrutado</span><strong id="freeEnjoyed">0</strong><small>Ver registros del mes →</small></a>
           </div>
         </section>
         <section id="calendario">
@@ -183,6 +192,9 @@
                     Trabajado – Pago pendiente
                   </option>
                   <option value="pagado">Trabajado – Pagado</option>
+                  <option value="libre_pendiente">Trabajado – Día libre pendiente</option>
+                  <option value="libre_disfrutado">Trabajado – Día libre disfrutado</option>
+                  <option value="no_laboro">No laboró</option>
                   <option value="no_aplica">No aplica</option>
                 </select></label
               >
@@ -214,7 +226,7 @@
           <div class="panel"><div class="table-wrap matrix-wrap"><table class="matrix-table"><thead id="matrixHead"></thead><tbody id="matrixBody"></tbody></table></div><p class="empty" id="matrixEmpty" hidden>No hay feriados ni registros para este año.</p></div>
         </section>
         <section id="pendientes">
-          <div class="section-heading"><div><h2>Pendientes</h2><p class="section-intro">Registros por revisar y pagos pendientes de cualquier mes.</p></div><span class="count" id="pendingCount"></span></div>
+          <div class="section-heading"><div><h2>Pendientes</h2><p class="section-intro">Registros, pagos y días libres pendientes de cualquier mes.</p></div><span class="count" id="pendingCount"></span></div>
           <div class="panel pending-list" id="pendingList"></div>
         </section>
         <section id="feriados">
@@ -255,7 +267,7 @@
             </div>
             <p class="report-period" id="reportPeriod"></p>
             <div class="report-summary" id="reportSummary"></div>
-            <div class="table-wrap"><table class="report-table"><thead><tr><th>FECHA</th><th>FERIADO / DÍA</th><th>COLABORADOR</th><th>EMPRESA</th><th>ESTADO</th><th>COMENTARIOS</th></tr></thead><tbody id="reportRows"></tbody></table></div>
+            <div class="table-wrap"><table class="report-table"><thead><tr><th>FECHA</th><th>FERIADO / DÍA</th><th>COLABORADOR</th><th>EMPRESA</th><th>ESTADO</th><th>FECHA DE PAGO</th><th>DÍA LIBRE DISFRUTADO</th><th>COMENTARIOS</th></tr></thead><tbody id="reportRows"></tbody></table></div>
             <p class="empty" id="reportEmpty" hidden>No hay registros para este reporte.</p>
             <p class="report-footnote" id="reportFootnote"></p>
           </div>
@@ -451,6 +463,7 @@
         <button type="button" class="close" id="calendarDayClose" aria-label="Cerrar detalle del día">×</button>
       </div>
       <p id="calendarDayCount" class="calendar-detail-count"></p>
+      <div id="calendarDaySummary" class="calendar-day-summary" role="group" aria-label="Filtrar registros del feriado"></div>
       <div id="calendarDayEntries" class="calendar-detail-list"></div>
       <div class="dialog-actions"><button type="button" class="secondary" id="calendarDayBulk" hidden>Registrar varios</button><button type="button" class="primary" id="calendarDayAdd">+ Agregar registro en esta fecha</button></div>
     </dialog>
@@ -489,16 +502,26 @@
               <option value="disfrutado">Disfrutado</option>
               <option value="pago_pendiente">Trabajado – Pago pendiente</option>
               <option value="pagado">Trabajado – Pagado</option>
+              <option value="libre_pendiente">Trabajado – Día libre pendiente</option>
+              <option value="libre_disfrutado">Trabajado – Día libre disfrutado</option>
+              <option value="no_laboro">No laboró</option>
               <option value="no_aplica">No aplica</option>
             </select></label
           >
+          <label class="field entry-extra" id="paidAtWrap" hidden>Fecha de pago (opcional)
+            <input type="date" name="paidAt" />
+          </label>
+          <label class="field entry-extra" id="compensatoryDateWrap" hidden>Fecha del día libre disfrutado (opcional)
+            <input type="date" name="compensatoryDate" />
+          </label>
+          <p class="entry-status-help field full" id="entryStatusHelp"></p>
           <label class="field full"
             >Comentarios (opcional)
             <textarea
               name="note"
               rows="3"
               maxlength="500"
-              placeholder="Ej.: fecha del día libre o una aclaración"
+              placeholder="Ej.: aclaración sobre el pago o día libre"
             ></textarea>
           </label>
         </div>
@@ -511,7 +534,7 @@
     </dialog>
     <script src="firebase-config.js?v=20260927-3"></script>
     <script src="cloud.js?v=20260928-9"></script>
-    <script src="xlsx.js?v=20260927-18"></script>
-    <script src="app.js?v=20260928-10"></script>
+    <script src="xlsx.js?v=20260928-11"></script>
+    <script src="app.js?v=20260928-11"></script>
   </body>
 </html>
