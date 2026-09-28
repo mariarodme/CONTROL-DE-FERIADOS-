@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
     <title>Control de Feriados · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260928-5" />
+    <link rel="stylesheet" href="styles.css?v=20260928-6" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -437,6 +437,13 @@
         </div>
       </form>
     </dialog>
+    <dialog id="closeReviewDialog" class="close-review-dialog" aria-labelledby="closeReviewTitle">
+      <div class="dialog-head"><div><span class="dialog-eyebrow">ANTES DEL CIERRE</span><h2 id="closeReviewTitle">Revisar mes</h2></div><button type="button" class="close" id="closeReviewX" aria-label="Cerrar revisión">×</button></div>
+      <p class="close-review-summary" id="closeReviewSummary"></p>
+      <div class="close-review-content"><div id="closeReviewPending"></div><div id="closeReviewMissing"></div></div>
+      <p class="close-review-note">«Sin registro» solo significa que no hay un estado anotado en ese feriado; revisá si corresponde registrar a cada persona.</p>
+      <div class="dialog-actions"><button type="button" class="secondary" id="closeReviewCancel">Volver a revisar</button><button type="button" class="primary" id="closeReviewConfirm">Cerrar mes</button></div>
+    </dialog>
     <dialog id="calendarDayDialog" class="calendar-detail-dialog" aria-labelledby="calendarDayTitle">
       <div class="dialog-head">
         <div><span class="dialog-eyebrow">REGISTROS DE LA FECHA</span><h2 id="calendarDayTitle"></h2><p id="calendarDayHoliday"></p></div>
@@ -502,8 +509,8 @@
       </form>
     </dialog>
     <script src="firebase-config.js?v=20260927-3"></script>
-    <script src="cloud.js?v=20260928-5"></script>
+    <script src="cloud.js?v=20260928-6"></script>
     <script src="xlsx.js?v=20260927-18"></script>
-    <script src="app.js?v=20260928-5"></script>
+    <script src="app.js?v=20260928-6"></script>
   </body>
 </html>
