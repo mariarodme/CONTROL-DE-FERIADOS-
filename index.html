@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
     <title>Control de Feriados · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260928-13" />
+    <link rel="stylesheet" href="styles.css?v=20260928-14" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -49,27 +49,18 @@
       </header>
       <main>
         <noscript><p class="script-notice">Este visor no ejecuta las funciones de la página. Para registrar o editar datos, abrila en Safari o desde GitHub Pages.</p></noscript>
-        <section id="inicio" class="home-hero">
-          <div class="hero-photo-slider" aria-hidden="true">
-            <img src="monte_carlo_pool_hero.jpg" alt="" class="hero-photo hero-first" />
-            <img src="monte_carlo_office_hero.jpg" alt="" class="hero-photo hero-second" />
+        <section id="inicio" class="home-start">
+          <div class="home-start-heading">
+            <span>MONTE CARLO · JACÓ BEACH ONSITE</span>
+            <h1>Asuntos por resolver</h1>
+            <p id="homeTaskPeriod">Del mes seleccionado</p>
           </div>
-          <div class="hero-shade">
-            <span class="hero-kicker">MONTE CARLO · JACÓ BEACH ONSITE</span>
-            <h1>Control de<br />Feriados</h1>
-            <span class="hero-rule"></span>
-            <p>Organizá los feriados, colaboradores y días laborados en un solo lugar.</p>
-            <a class="hero-cta" href="#resumen">VER EL CONTROL <span aria-hidden="true">→</span></a>
+          <div class="panel home-urgent">
+            <div class="home-urgent-head"><strong>Prioridades del mes</strong><span id="homeTaskCount" class="count">0 asuntos</span></div>
+            <div class="task-list" id="homeTaskList"></div>
+            <a href="#resumen" id="homeTaskMore" class="home-task-more" hidden>Ver todos los asuntos →</a>
           </div>
         </section>
-        <nav class="home-cards" aria-label="Accesos principales">
-          <a href="#resumen"><span class="home-icon">◫</span><strong>Dashboard</strong><small>Resumen del período.</small><span class="home-arrow">→</span></a>
-          <a href="#calendario"><span class="home-icon">▦</span><strong>Calendario</strong><small>Fechas y registros.</small><span class="home-arrow">→</span></a>
-          <a href="#registro"><span class="home-icon">▤</span><strong>Control General</strong><small>Consulta y editá días.</small><span class="home-arrow">→</span></a>
-          <a href="#matriz"><span class="home-icon">▦</span><strong>Matriz Anual</strong><small>Estados por feriado.</small><span class="home-arrow">→</span></a>
-          <a href="#pendientes"><span class="home-icon">◷</span><strong>Pendientes</strong><small>Revisión y pagos.</small><span class="home-arrow">→</span></a>
-          <a href="#equipo"><span class="home-icon">♙</span><strong>Colaboradores</strong><small>Lista por empresa.</small><span class="home-arrow">→</span></a>
-        </nav>
         <section id="equipo" class="team-section">
           <div class="section-heading">
             <div>
@@ -145,6 +136,16 @@
           </div>
           <div class="task-panel panel"><div class="task-header"><div><h3>Por resolver</h3><p id="taskIntro">Tareas del mes seleccionado</p></div><span id="taskCount" class="count"></span></div><div id="taskList" class="task-list"></div></div>
         </section>
+        <nav class="home-cards" aria-label="Accesos principales">
+          <div class="home-links-heading"><span>ACCESOS RÁPIDOS</span><h2>Ir a una sección</h2></div>
+          <a href="#calendario"><span class="home-icon">▦</span><strong>Calendario</strong><small>Fechas y registros.</small><span class="home-arrow">→</span></a>
+          <a href="#registro"><span class="home-icon">▤</span><strong>Control General</strong><small>Consultá y editá días.</small><span class="home-arrow">→</span></a>
+          <a href="#matriz"><span class="home-icon">▦</span><strong>Matriz Anual</strong><small>Estados por feriado.</small><span class="home-arrow">→</span></a>
+          <a href="#pendientes"><span class="home-icon">◷</span><strong>Pendientes</strong><small>Revisión y pagos.</small><span class="home-arrow">→</span></a>
+          <a href="#equipo"><span class="home-icon">♙</span><strong>Colaboradores</strong><small>Lista por empresa.</small><span class="home-arrow">→</span></a>
+          <a href="#feriados"><span class="home-icon">▧</span><strong>Feriados</strong><small>Fechas de cada año.</small><span class="home-arrow">→</span></a>
+          <a href="#reportes"><span class="home-icon">▥</span><strong>Reportes</strong><small>Descargas y consultas.</small><span class="home-arrow">→</span></a>
+        </nav>
         <section id="calendario">
           <div class="section-heading"><div><h2>Calendario</h2><p class="section-intro">Feriados del mes seleccionado. Tocá una fecha para ver colaboradores y registros.</p></div><div class="calendar-controls"><button type="button" class="secondary" id="previousMonth" aria-label="Mes anterior">‹</button><strong id="calendarTitle"></strong><button type="button" class="secondary" id="nextMonth" aria-label="Mes siguiente">›</button></div></div>
           <div class="panel calendar-panel"><div class="calendar-grid" id="calendarGrid"></div></div>
@@ -542,6 +543,6 @@
     <script src="firebase-config.js?v=20260927-3"></script>
     <script src="cloud.js?v=20260928-10"></script>
     <script src="xlsx.js?v=20260928-12"></script>
-    <script src="app.js?v=20260928-13"></script>
+    <script src="app.js?v=20260928-14"></script>
   </body>
 </html>
