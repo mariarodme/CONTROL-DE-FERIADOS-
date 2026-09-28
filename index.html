@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
     <title>Control de Feriados · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260928-12" />
+    <link rel="stylesheet" href="styles.css?v=20260928-13" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -97,6 +97,7 @@
               Jacó Beach Onsite
             </button>
           </div>
+          <div class="employee-status-tabs" role="group" aria-label="Estado de colaboradores"><button type="button" data-team-status="active" class="active" aria-pressed="true">Activos</button><button type="button" data-team-status="archived" aria-pressed="false">Archivados</button></div>
           <div class="panel employee-panel" id="employees"></div>
         </section>
         <section id="ficha" class="profile-section">
@@ -145,7 +146,7 @@
           <div class="task-panel panel"><div class="task-header"><div><h3>Por resolver</h3><p id="taskIntro">Tareas del mes seleccionado</p></div><span id="taskCount" class="count"></span></div><div id="taskList" class="task-list"></div></div>
         </section>
         <section id="calendario">
-          <div class="section-heading"><div><h2>Calendario</h2><p class="section-intro">Feriados y registros del mes seleccionado.</p></div><div class="calendar-controls"><button type="button" class="secondary" id="previousMonth" aria-label="Mes anterior">‹</button><strong id="calendarTitle"></strong><button type="button" class="secondary" id="nextMonth" aria-label="Mes siguiente">›</button></div></div>
+          <div class="section-heading"><div><h2>Calendario</h2><p class="section-intro">Feriados del mes seleccionado. Tocá una fecha para ver colaboradores y registros.</p></div><div class="calendar-controls"><button type="button" class="secondary" id="previousMonth" aria-label="Mes anterior">‹</button><strong id="calendarTitle"></strong><button type="button" class="secondary" id="nextMonth" aria-label="Mes siguiente">›</button></div></div>
           <div class="panel calendar-panel"><div class="calendar-grid" id="calendarGrid"></div></div>
         </section>
         <section id="registro">
@@ -410,7 +411,7 @@
                 Jacó Beach Onsite Management Services Ltda.
               </option>
             </select></label
-          >
+          ><label class="field">Fecha de ingreso (opcional)<input name="startDate" type="date" /></label><label class="field">Fecha de salida (opcional)<input name="endDate" type="date" /></label><p class="field full employee-dates-hint">Estas fechas determinan en cuáles feriados debe aparecer el colaborador. Si no conocés la fecha de ingreso de alguien ya registrado, podés dejarla vacía.</p>
         </div>
         <div class="dialog-actions">
           <button type="button" class="secondary" id="cancelEmployeeDialog">
@@ -537,9 +538,10 @@
         </div>
       </form>
     </dialog>
+    <div id="saveToast" class="save-toast" role="status" aria-live="polite" hidden></div>
     <script src="firebase-config.js?v=20260927-3"></script>
-    <script src="cloud.js?v=20260928-9"></script>
+    <script src="cloud.js?v=20260928-10"></script>
     <script src="xlsx.js?v=20260928-12"></script>
-    <script src="app.js?v=20260928-12"></script>
+    <script src="app.js?v=20260928-13"></script>
   </body>
 </html>
