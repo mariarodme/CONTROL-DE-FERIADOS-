@@ -142,15 +142,62 @@ let state = load(),
   editingEmployee = null,
   editingHoliday = null,
   teamFilter = "";
-function save() {
+function businessSnapshot(data) {
+  return JSON.parse(JSON.stringify({
+    employees: data.employees || [], holidays: data.holidays || [], entries: data.entries || [],
+  }));
+}
+let lastBusinessSnapshot = businessSnapshot(state);
+function historyDescription(entity, value) {
+  if (!value) return "";
+  if (entity === "colaborador") return `${value.name} · ${value.company}`;
+  if (entity === "feriado") return `${displayDate(value.date)} · ${value.name}`;
+  return `${displayDate(value.date)} · ${value.type === "feriado" ? "Feriado" : "Ordinario"} · ${TRACKING[value.trackingState] || TRACKING.no_aplica}${value.note ? " · " + value.note : ""}`;
+}
+function collectHistoryChanges(previous, current) {
+  const actor = window.jornadasCloud?.actor?.() || "Este dispositivo";
+  const at = new Date().toISOString();
+  const people = new Map([...previous.employees, ...current.employees].map((person) => [person.id, person]));
+  const events = [];
+  for (const [key, entity] of [["employees", "colaborador"], ["holidays", "feriado"], ["entries", "registro"]]) {
+    const oldById = new Map(previous[key].map((item) => [item.id, item]));
+    const newById = new Map(current[key].map((item) => [item.id, item]));
+    for (const itemId of new Set([...oldById.keys(), ...newById.keys()])) {
+      const before = oldById.get(itemId);
+      const after = newById.get(itemId);
+      if (JSON.stringify(before) === JSON.stringify(after)) continue;
+      const value = after || before;
+      const person = entity === "registro" ? people.get(value.employeeId) : null;
+      events.push({
+        id: id(), at, actor, entity,
+        action: !before ? "Creó" : !after ? "Eliminó" : "Editó",
+        title: entity === "registro" ? `${person?.name || "Colaborador eliminado"} · ${displayDate(value.date)}`
+          : entity === "feriado" ? value.name : value.name,
+        company: entity === "colaborador" ? value.company : person?.company || "",
+        before: historyDescription(entity, before),
+        after: historyDescription(entity, after),
+      });
+    }
+  }
+  return events;
+}
+function save(options = {}) {
+  const previousHistory = state.history;
+  const current = businessSnapshot(state);
+  const actor = window.jornadasCloud?.actor?.() || "Este dispositivo";
+  const changes = options.importSummary
+    ? [{id: id(), at: new Date().toISOString(), actor, entity: "respaldo", action: "Importó",
+        title: "Respaldo JSON", company: "", before: "", after: options.importSummary}]
+    : collectHistoryChanges(lastBusinessSnapshot, current);
+  if (changes.length) state.history = [...(state.history || []), ...changes];
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
+    lastBusinessSnapshot = current;
     render();
     window.jornadasCloud?.changed();
   } catch {
-    alert(
-      "No se pudo guardar. Descargá un respaldo y liberá espacio antes de continuar.",
-    );
+    state.history = previousHistory;
+    alert("No se pudo guardar. Descargá un respaldo y liberá espacio antes de continuar.");
   }
 }
 function displayDate(s) {
@@ -216,6 +263,36 @@ function renderEmployeeCard(person) {
     <div class="person-actions"><button type="button" class="person-add" data-new-for-employee="${escapeHtml(person.id)}" aria-label="Registrar día para ${escapeHtml(person.name)}">+ Registrar día</button><button type="button" class="link" data-edit-employee="${escapeHtml(person.id)}" aria-label="Editar a ${escapeHtml(person.name)}">Editar</button><button type="button" class="link danger" data-remove-employee="${escapeHtml(person.id)}" aria-label="Eliminar a ${escapeHtml(person.name)}">Eliminar</button></div>
   </article>`;
 }
+function renderHistory() {
+  const search = normalize($("#historySearch").value.trim());
+  const type = $("#historyType").value;
+  const events = [...(Array.isArray(state.history) ? state.history : [])]
+    .filter((event) => (!type || event.entity === type) &&
+      (!search || normalize([event.title, event.actor, event.before, event.after].join(" ")).includes(search)))
+    .sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  $("#historyCount").textContent = `${events.length} movimiento${events.length === 1 ? "" : "s"}`;
+  let previousDay = "";
+  $("#historyList").innerHTML = events.length ? events.map((event) => {
+    const date = new Date(event.at);
+    const validDate = !Number.isNaN(date.valueOf());
+    const day = validDate ? new Intl.DateTimeFormat("es-CR", {dateStyle: "long", timeZone: "America/Costa_Rica"}).format(date) : "Fecha desconocida";
+    const time = validDate ? new Intl.DateTimeFormat("es-CR", {timeStyle: "short", timeZone: "America/Costa_Rica"}).format(date) : "";
+    const heading = day !== previousDay ? `<h3 class="history-day">${escapeHtml(day)}</h3>` : "";
+    previousDay = day;
+    const kind = {registro: "Registro", feriado: "Feriado", colaborador: "Colaborador", respaldo: "Importación"}[event.entity] || "Cambio";
+    return `${heading}<article class="history-item">
+      <div class="history-top"><span class="history-kind history-kind-${escapeHtml(event.entity)}">${escapeHtml(kind)}</span><span class="history-time">${escapeHtml(time)}</span></div>
+      <h4>${escapeHtml(event.action)} · ${escapeHtml(event.title)}</h4>
+      <p class="history-actor">${escapeHtml(event.actor || "Este dispositivo")}${event.company ? " · " + escapeHtml(event.company) : ""}</p>
+      ${event.before || event.after ? `<div class="history-diff">
+        ${event.before ? `<div><span>ANTES</span><p>${escapeHtml(event.before)}</p></div>` : ""}
+        ${event.after ? `<div><span>DESPUÉS</span><p>${escapeHtml(event.after)}</p></div>` : ""}
+      </div>` : ""}
+    </article>`;
+  }).join("") : '<p class="history-empty">Todavía no hay movimientos para mostrar con estos filtros. Los cambios nuevos aparecerán aquí.</p>';
+}
+$("#historySearch").addEventListener("input", renderHistory);
+$("#historyType").addEventListener("change", renderHistory);
 function render() {
   const month = $("#month").value,
     period = state.entries.filter((x) => !month || x.date.startsWith(month));
@@ -263,6 +340,7 @@ function render() {
   renderMatrix();
   renderPending();
   renderReports();
+  renderHistory();
 }
 function renderHolidays() {
   const year = $("#holidayYear").value;
@@ -824,7 +902,7 @@ document.addEventListener("keydown", (event) => {
     $("#menuToggle").focus();
   }
 });
-const views = new Set(["inicio", "resumen", "calendario", "registro", "matriz", "pendientes", "equipo", "feriados", "reportes", "configuracion"]);
+const views = new Set(["inicio", "resumen", "calendario", "registro", "matriz", "pendientes", "equipo", "feriados", "reportes", "historial", "configuracion"]);
 function showView(view, scroll = true) {
   const selected = views.has(view) ? view : "inicio";
   document.body.dataset.view = selected;
@@ -995,7 +1073,23 @@ $("#importBackupFile").addEventListener("change", async (event) => {
         added++;
       }
     }
-    save();
+    if (Array.isArray(imported.history)) {
+      const known = new Set((state.history || []).map((event) => event.id));
+      for (const event of imported.history) {
+        if (!event || typeof event.id !== "string" || typeof event.at !== "string" ||
+            typeof event.title !== "string" || !["registro", "feriado", "colaborador", "respaldo"].includes(event.entity) ||
+            known.has(event.id)) continue;
+        if (!Array.isArray(state.history)) state.history = [];
+        state.history.push({
+          id: event.id, at: event.at, entity: event.entity,
+          action: String(event.action || "Editó"), title: event.title,
+          company: String(event.company || ""), actor: String(event.actor || "Este dispositivo"),
+          before: String(event.before || ""), after: String(event.after || ""),
+        });
+        known.add(event.id);
+      }
+    }
+    save({importSummary: `${added} registros agregados · ${updated} actualizados`});
     status.textContent = `Importación lista: ${added} registros agregados y ${updated} actualizados.`;
   } catch (error) {
     status.textContent = "No se pudo importar el archivo. Verificá que sea un respaldo JSON válido.";
@@ -1020,7 +1114,7 @@ $("#backup").onclick = () =>
   download(
     `jornadas-respaldo-${new Date().toISOString().slice(0, 10)}.json`,
     JSON.stringify(
-      { ...state, version: 6, exportedAt: new Date().toISOString() },
+      { ...state, version: 7, exportedAt: new Date().toISOString() },
       null,
       2,
     ),
@@ -1103,6 +1197,7 @@ window.jornadasCloud?.start({
   seedUpcomingHolidays() {
     if (!seedUpcomingHolidays(state)) return false;
     localStorage.setItem(KEY, JSON.stringify(state));
+    lastBusinessSnapshot = businessSnapshot(state);
     render();
     return true;
   },
@@ -1110,6 +1205,7 @@ window.jornadasCloud?.start({
     if (!Array.isArray(data?.employees) || !Array.isArray(data?.entries) || !Array.isArray(data?.holidays))
       throw new Error("Los datos en línea tienen un formato inválido.");
     state = data;
+    lastBusinessSnapshot = businessSnapshot(state);
     localStorage.setItem(KEY, JSON.stringify(state));
     render();
   },
