@@ -806,3 +806,29 @@ body[data-view="inicio"] .home-cards{display:none!important}
 #resumen .home-urgent{margin:0 0 26px}
 #resumen .home-urgent-head p{text-transform:none}
 @media(max-width:620px){#resumen .home-urgent{margin:0 0 20px}}
+
+
+/* Encabezado adaptable: los accesos tienen su propia fila. */
+@media (min-width:801px){
+  .sidebar{
+    height:106px;
+    padding:0 max(24px,3vw);
+    display:grid;
+    grid-template-columns:205px minmax(0,1fr) auto auto;
+    grid-template-rows:64px 42px;
+    column-gap:20px;
+    align-items:center;
+  }
+  .brand{grid-column:1;grid-row:1}
+  .cloud-indicator{grid-column:2;grid-row:1;justify-self:start;margin:0;padding:8px 12px;white-space:nowrap}
+  .global-search-trigger{grid-column:3;grid-row:1}
+  .menu-disclosure{grid-column:4;grid-row:1;margin:0}
+  #sideNav{
+    grid-column:1/-1;grid-row:2;
+    justify-content:center;
+    gap:clamp(14px,2vw,36px);
+    align-self:stretch;
+  }
+  #sideNav a{padding:12px 0 10px}
+  #menuPanel{top:102px;right:max(24px,3vw)}
+}
