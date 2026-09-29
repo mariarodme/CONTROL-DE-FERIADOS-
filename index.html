@@ -4,8 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#f9f7f1" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Monte Carlo" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="app-icon.svg" />
+    <link rel="apple-touch-icon" href="icon-180.png" />
     <title>Gestión Administrativa · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260928-17" />
+    <link rel="stylesheet" href="styles.css?v=20260929-1" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -30,6 +36,7 @@
           <a href="#historial">Historial</a>
           <a href="#configuracion" class="nav-settings">⚙ &nbsp; Configuración y diseño</a>
         </nav>
+        <button type="button" class="global-search-trigger" id="globalSearchOpen" aria-label="Buscar en Feriados y Electricidad"><span aria-hidden="true">⌕</span><span>Buscar</span></button>
         <details class="menu-disclosure" id="menuDisclosure">
           <summary id="menuToggle" aria-label="Abrir menú" aria-controls="menuPanel">☰</summary>
           <nav id="menuPanel" aria-label="Menú completo">
@@ -46,6 +53,7 @@
             <a href="#reportes">Reportes</a>
           <a href="#historial">Historial</a>
             <a href="#configuracion" class="nav-settings">⚙ &nbsp; Configuración y diseño</a>
+            <button type="button" id="installAppMenu" class="menu-install" hidden>Instalar en el celular</button>
           </nav>
         </details>
       </header>
@@ -81,6 +89,7 @@
               <span class="module-open">Entrar a Electricidad →</span>
             </a>
           </div>
+          <div class="pwa-callout" id="installCallout" hidden><span aria-hidden="true">▣</span><p><strong>Monte Carlo en tu celular</strong><small>Entrá a Feriados y Electricidad desde un ícono.</small></p><button type="button" id="installAppButton">Instalar</button></div>
           <div class="panel home-urgent">
             <div class="home-urgent-head">
               <div><span class="section-eyebrow">PARA REVISAR</span><h2>Asuntos por resolver</h2><p id="homeTaskPeriod">Del mes seleccionado</p></div>
@@ -97,8 +106,8 @@
           </div>
           <p class="electricity-fallback"><a href="../CALCULADORA-ELECTRICIDAD-/" target="_blank" rel="noopener">Abrir Electricidad en otra pestaña ↗</a></p>
           <iframe id="electricityFrame" title="Calculadora e historial de electricidad"
-            src="../CALCULADORA-ELECTRICIDAD-/?embed=1&amp;v=20260928-3"
-            loading="lazy" referrerpolicy="same-origin"></iframe>
+            src="../CALCULADORA-ELECTRICIDAD-/?embed=1&amp;v=20260929-1"
+            loading="eager" referrerpolicy="same-origin"></iframe>
         </section>
         <section id="equipo" class="team-section">
           <div class="section-heading">
@@ -579,11 +588,17 @@
         </div>
       </form>
     </dialog>
+    <dialog id="globalSearchDialog" class="global-search-dialog" aria-labelledby="globalSearchTitle">
+      <div class="global-search-head"><div><span class="section-eyebrow">CONSULTA RÁPIDA</span><h2 id="globalSearchTitle">Buscar en toda la página</h2></div><button type="button" id="globalSearchClose" aria-label="Cerrar búsqueda">×</button></div>
+      <label for="globalSearchInput">Nombre, unidad, fecha o feriado</label>
+      <input id="globalSearchInput" type="search" autocomplete="off" placeholder="Ej.: María, unidad 4B, 15 de septiembre" />
+      <div id="globalSearchResults" class="global-search-results" role="status" aria-live="polite"></div>
+    </dialog>
     <div id="saveToast" class="save-toast" role="status" aria-live="polite" hidden></div>
     <script src="firebase-config.js?v=20260927-3"></script>
     <script src="cloud.js?v=20260928-10"></script>
     <script src="xlsx.js?v=20260928-12"></script>
-    <script src="app.js?v=20260928-17"></script>
-    <script src="unified.js?v=20260928-17"></script>
+    <script src="app.js?v=20260929-1"></script>
+    <script src="unified.js?v=20260929-1"></script>
   </body>
 </html>
