@@ -28,8 +28,8 @@
           <a href="#calendario">Calendario</a>
           <a href="#registro">Control General</a>
           <a href="#equipo">Colaboradores</a>
-          <a href="#deducciones">Deducciones salariales</a>
           <a href="#electricidad">Electricidad</a>
+          <a href="#deducciones">Deducciones salariales</a>
           <a href="#feriados">Feriados del año</a>
           <a href="#matriz">Matriz Anual</a>
           <a href="#pendientes">Pendientes</a>
@@ -52,8 +52,8 @@
             <a href="#feriados">Feriados del año</a>
             <a href="#reportes">Reportes</a>
           <a href="#historial">Historial</a>
-            <a href="#deducciones">Deducciones salariales</a>
             <a href="#electricidad">Electricidad</a>
+            <a href="#deducciones">Deducciones salariales</a>
             <a href="#configuracion" class="nav-settings">⚙ &nbsp; Configuración y diseño</a>
             <button type="button" id="installAppMenu" class="menu-install" hidden>Instalar en el celular</button>
           </nav>
@@ -83,13 +83,6 @@
               <span>Colaboradores, calendario, estados y días laborados.</span>
               <span class="module-open">Entrar a Feriados →</span>
             </a>
-            <a href="#deducciones" class="module-choice">
-              <span class="module-symbol" aria-hidden="true">₡</span>
-              <span class="module-kicker">PLANILLA · CÁLCULO</span>
-              <strong>Deducciones salariales</strong>
-              <span>Calculá el salario neto y consultá el desglose de deducciones.</span>
-              <span class="module-open">Entrar a la calculadora →</span>
-            </a>
             <a href="#electricidad" class="module-choice">
               <span class="module-symbol" aria-hidden="true">ϟ</span>
               <span class="module-kicker">CONSUMO · COBROS</span>
@@ -97,8 +90,15 @@
               <span>Lecturas, facturas, pagos e historial por unidad.</span>
               <span class="module-open">Entrar a Electricidad →</span>
             </a>
+            <a href="#deducciones" class="module-choice">
+              <span class="module-symbol" aria-hidden="true">₡</span>
+              <span class="module-kicker">PLANILLA · CÁLCULO</span>
+              <strong>Deducciones salariales</strong>
+              <span>Calculá el salario neto y consultá el desglose de deducciones.</span>
+              <span class="module-open">Entrar a la calculadora →</span>
+            </a>
           </div>
-          <div class="pwa-callout" id="installCallout" hidden><span aria-hidden="true">▣</span><p><strong>Monte Carlo en tu celular</strong><small>Entrá a Feriados, Deducciones y Electricidad desde un ícono.</small></p><button type="button" id="installAppButton">Instalar</button></div>
+          <div class="pwa-callout" id="installCallout" hidden><span aria-hidden="true">▣</span><p><strong>Monte Carlo en tu celular</strong><small>Entrá a Feriados, Electricidad y Deducciones desde un ícono.</small></p><button type="button" id="installAppButton">Instalar</button></div>
           <div class="panel home-urgent" hidden>
             <div class="home-urgent-head">
               <div><span class="section-eyebrow">PARA REVISAR</span><h2>Asuntos por resolver</h2><p id="homeTaskPeriod">Del mes seleccionado</p></div>
@@ -110,16 +110,6 @@
 
 
         </section>
-        <section id="deducciones" class="salary-section">
-          <div class="section-heading electricity-heading">
-            <div><span class="section-eyebrow">PLANILLA · COSTA RICA</span><h2>Deducciones salariales</h2>
-              <p class="section-intro">Calculadora de salario neto y desglose de deducciones.</p></div>
-          </div>
-          <p class="electricity-fallback"><a href="../CALCULADORA-DE-DEDUCCIONES-SALARIALES-COSTA-RICA/" target="_blank" rel="noopener">Abrir la calculadora en otra pestaña ↗</a></p>
-          <iframe id="salaryFrame" title="Calculadora de deducciones salariales de Costa Rica"
-            src="../CALCULADORA-DE-DEDUCCIONES-SALARIALES-COSTA-RICA/?embed=1&amp;v=20260929-5"
-            loading="lazy" referrerpolicy="same-origin"></iframe>
-        </section>
         <section id="electricidad" class="electricity-section">
           <div class="section-heading electricity-heading">
             <div><span class="section-eyebrow">MONTE CARLO · COBROS</span><h2>Electricidad</h2>
@@ -129,6 +119,16 @@
           <iframe id="electricityFrame" title="Calculadora e historial de electricidad"
             src="../CALCULADORA-ELECTRICIDAD-/?embed=1&amp;v=20260929-3"
             loading="eager" referrerpolicy="same-origin"></iframe>
+        </section>
+        <section id="deducciones" class="salary-section">
+          <div class="section-heading electricity-heading">
+            <div><span class="section-eyebrow">PLANILLA · COSTA RICA</span><h2>Deducciones salariales</h2>
+              <p class="section-intro">Calculadora de salario neto y desglose de deducciones.</p></div>
+          </div>
+          <p class="electricity-fallback"><a href="../CALCULADORA-DE-DEDUCCIONES-SALARIALES-COSTA-RICA/" target="_blank" rel="noopener">Abrir la calculadora en otra pestaña ↗</a></p>
+          <iframe id="salaryFrame" title="Calculadora de deducciones salariales de Costa Rica"
+            src="../CALCULADORA-DE-DEDUCCIONES-SALARIALES-COSTA-RICA/?embed=1&amp;v=20260929-5"
+            loading="lazy" referrerpolicy="same-origin"></iframe>
         </section>
         <section id="equipo" class="team-section">
           <div class="section-heading">
@@ -207,8 +207,8 @@
         </section>
         <nav class="home-cards" aria-label="Accesos principales">
           <div class="home-links-heading"><span>ACCESOS RÁPIDOS</span><h2>Ir a una sección</h2></div>
-          <a href="#deducciones"><span class="home-icon">₡</span><strong>Deducciones</strong><small>Salario neto.</small><span class="home-arrow">→</span></a>
           <a href="#electricidad"><span class="home-icon">ϟ</span><strong>Electricidad</strong><small>Facturas y pagos.</small><span class="home-arrow">→</span></a>
+          <a href="#deducciones"><span class="home-icon">₡</span><strong>Deducciones</strong><small>Salario neto.</small><span class="home-arrow">→</span></a>
           <a href="#calendario"><span class="home-icon">▦</span><strong>Calendario</strong><small>Fechas y registros.</small><span class="home-arrow">→</span></a>
           <a href="#registro"><span class="home-icon">▤</span><strong>Control General</strong><small>Consultá y editá días.</small><span class="home-arrow">→</span></a>
           <a href="#matriz"><span class="home-icon">▦</span><strong>Matriz Anual</strong><small>Estados por feriado.</small><span class="home-arrow">→</span></a>
