@@ -719,6 +719,7 @@ function renderTasks(month) {
   $("#homeTaskList").innerHTML = total ? rows.slice(0, 3).join("") : '<p class="task-empty">Todo está al día para este mes.</p>';
   $("#homeTaskMore").hidden = total <= 3;
   $("#homeTaskList").closest(".home-urgent").classList.toggle("has-urgent", total > 0);
+  window.renderUnifiedHomeTasks?.(month, rows, total);
 }
 document.addEventListener("click", (event) => {
   const edit = event.target.closest("[data-task-edit]");
