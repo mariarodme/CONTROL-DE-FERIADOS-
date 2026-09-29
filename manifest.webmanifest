@@ -1,10 +1,10 @@
 {
-  "id": "/CONTROL-DE-FERIADOS-/",
+  "id": "./",
   "name": "Gestión Administrativa · Monte Carlo & Onsite",
   "short_name": "Monte Carlo",
-  "description": "Control de Feriados y cobros de Electricidad",
-  "start_url": "/CONTROL-DE-FERIADOS-/",
-  "scope": "/CONTROL-DE-FERIADOS-/",
+  "description": "Feriados, deducciones salariales y cobros de electricidad",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f9f7f1",
   "theme_color": "#405844",
@@ -26,12 +26,17 @@
     {
       "name": "Control de Feriados",
       "short_name": "Feriados",
-      "url": "/CONTROL-DE-FERIADOS-/#resumen"
+      "url": "./#resumen"
+    },
+    {
+      "name": "Deducciones salariales",
+      "short_name": "Deducciones",
+      "url": "./#deducciones"
     },
     {
       "name": "Electricidad",
       "short_name": "Electricidad",
-      "url": "/CONTROL-DE-FERIADOS-/#electricidad"
+      "url": "./#electricidad"
     }
   ]
 }
