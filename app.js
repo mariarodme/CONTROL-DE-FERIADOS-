@@ -1190,6 +1190,10 @@ $("#employeeForm").onsubmit = (event) => {
   save({confirmation: `${name} · ${editingEmployee ? "ficha actualizada" : "colaborador agregado"}`});
 };
 const bulkDraft = new Map();
+const bulkSelected = new Set();
+function updateBulkSelectionInfo(message = "") {
+  $("#bulkSelectionInfo").textContent = message || `${bulkSelected.size} colaborador(es) seleccionados. Los que ya tienen registro se editan individualmente.`;
+}
 let bulkDate = "";
 function renderBulkRows() {
   const date = $("#bulkHoliday").value;
@@ -1211,7 +1215,7 @@ function renderBulkRows() {
       : draft.status === "libre_disfrutado"
       ? `<label class="field bulk-date">Día libre disfrutado (opcional)<input type="date" data-bulk-free value="${escapeHtml(draft.compensatoryDate)}" aria-label="Día libre de ${escapeHtml(person.name)}" /></label>` : "";
     return `<div class="bulk-row" data-bulk-person="${escapeHtml(person.id)}">
-      <div class="bulk-person"><strong>${escapeHtml(person.name)}</strong><small>${escapeHtml(shortCompany)}${existing ? " · Ya registrado" : ""}</small></div>
+      <div class="bulk-person"><label><input type="checkbox" data-bulk-select aria-label="Seleccionar a ${escapeHtml(person.name)}"${bulkSelected.has(person.id) ? " checked" : ""}${existing ? " disabled" : ""} /> <strong>${escapeHtml(person.name)}</strong></label><small>${escapeHtml(shortCompany)}${existing ? " · Ya registrado" : ""}</small></div>
       <label class="field">Estado
         <select data-bulk-state aria-label="Estado de ${escapeHtml(person.name)}">
           <option value="">Sin registrar / no cambiar</option>
@@ -1224,6 +1228,7 @@ function renderBulkRows() {
       ${dateField}
     </div>`;
   }).join("") : '<p class="empty">No hay colaboradores en esta empresa.</p>';
+  updateBulkSelectionInfo();
 }
 function collectBulkChanges(date) {
   const changes = [];
@@ -1256,6 +1261,11 @@ function openBulk(preferredDate) {
   $("#bulkHoliday").value = bulkDate;
   $("#bulkCompany").value = $("#companyFilter").value || "";
   bulkDraft.clear();
+  bulkSelected.clear();
+  $("#bulkSharedState").value = "";
+  $("#bulkSharedPaid").value = "";
+  $("#bulkSharedFree").value = "";
+  $("#bulkSharedState").onchange();
   renderBulkRows();
   $("#bulkDialog").showModal();
   $("#bulkHoliday").focus();
@@ -1263,7 +1273,7 @@ function openBulk(preferredDate) {
 }
 $("#bulkRows").addEventListener("input", (event) => {
   const row = event.target.closest("[data-bulk-person]");
-  if (!row) return;
+  if (!row || event.target.matches("[data-bulk-select]")) return;
   const previous = bulkDraft.get(row.dataset.bulkPerson) || {};
   bulkDraft.set(row.dataset.bulkPerson, {
     status: row.querySelector("[data-bulk-state]").value,
@@ -1278,7 +1288,47 @@ $("#bulkRows").addEventListener("change", (event) => {
     renderBulkRows();
   }
 });
-$("#bulkCompany").addEventListener("change", renderBulkRows);
+$("#bulkCompany").addEventListener("change", () => { bulkSelected.clear(); renderBulkRows(); });
+$("#bulkSharedState").innerHTML += Object.entries(TRACKING).map(([value, label]) =>
+  `<option value="${value}">${escapeHtml(label)}</option>`).join("");
+$("#bulkSharedState").onchange = () => {
+  $("#bulkSharedPaidWrap").hidden = $("#bulkSharedState").value !== "pagado";
+  $("#bulkSharedFreeWrap").hidden = $("#bulkSharedState").value !== "libre_disfrutado";
+};
+$("#bulkRows").addEventListener("change", (event) => {
+  if (!event.target.matches("[data-bulk-select]")) return;
+  const employeeId = event.target.closest("[data-bulk-person]").dataset.bulkPerson;
+  if (event.target.checked) bulkSelected.add(employeeId); else bulkSelected.delete(employeeId);
+  updateBulkSelectionInfo();
+});
+$("#bulkSelectAll").onclick = () => {
+  $("#bulkRows").querySelectorAll("[data-bulk-select]:not(:disabled)").forEach((input) => {
+    bulkSelected.add(input.closest("[data-bulk-person]").dataset.bulkPerson);
+  });
+  renderBulkRows();
+};
+$("#bulkClearSelection").onclick = () => { bulkSelected.clear(); renderBulkRows(); };
+$("#bulkApplyState").onclick = () => {
+  const status = $("#bulkSharedState").value;
+  if (!Object.hasOwn(TRACKING, status)) return alert("Escogé el estado que querés aplicar.");
+  if (!bulkSelected.size) return alert("Marcá al menos un colaborador.");
+  const date = $("#bulkHoliday").value;
+  if (!ensureOpen(date)) return;
+  const paidAt = status === "pagado" ? $("#bulkSharedPaid").value : "";
+  const compensatoryDate = status === "libre_disfrutado" ? $("#bulkSharedFree").value : "";
+  if (paidAt && !validISODate(paidAt) || compensatoryDate && !validISODate(compensatoryDate))
+    return alert("Revisá la fecha de pago o del día libre.");
+  let applied = 0;
+  for (const employeeId of bulkSelected) {
+    if (state.entries.some((entry) => entry.date === date && entry.employeeId === employeeId)) continue;
+    const draft = bulkDraft.get(employeeId);
+    if (!draft) continue;
+    bulkDraft.set(employeeId, {...draft, status, paidAt, compensatoryDate});
+    applied++;
+  }
+  renderBulkRows();
+  updateBulkSelectionInfo(`${TRACKING[status]} aplicado a ${applied} colaborador(es). Tocá «Guardar registros» para confirmar.`);
+};
 $("#bulkHoliday").addEventListener("change", () => {
   if (collectBulkChanges(bulkDate).length &&
       !confirm("Hay cambios sin guardar. ¿Cambiar de feriado y descartarlos?")) {
