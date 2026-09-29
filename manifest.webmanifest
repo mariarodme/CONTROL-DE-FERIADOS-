@@ -29,14 +29,14 @@
       "url": "./#resumen"
     },
     {
-      "name": "Deducciones salariales",
-      "short_name": "Deducciones",
-      "url": "./#deducciones"
-    },
-    {
       "name": "Electricidad",
       "short_name": "Electricidad",
       "url": "./#electricidad"
+    },
+    {
+      "name": "Deducciones salariales",
+      "short_name": "Deducciones",
+      "url": "./#deducciones"
     }
   ]
 }
