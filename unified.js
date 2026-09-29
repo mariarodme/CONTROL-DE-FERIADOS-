@@ -6,6 +6,25 @@
   const norm=(value)=>String(value??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("es").trim();
   const billMonth=(r)=>String(r.checkOut||r.checkIn||"").slice(0,7);
   const route=(view)=>document.querySelector('#sideNav a[href="#'+view+'"]')?.click();
+  let lastPeriodSent="";
+  const validMonth=(month)=>/^\d{4}-(0[1-9]|1[0-2])$/.test(String(month||""));
+  function displayPeriod(month){
+    if(!validMonth(month))return;
+    for(const id of ["unifiedMonth","electricUnifiedMonth"]){const control=$("#"+id);if(control&&control.value!==month)control.value=month}
+    if(frame?.contentWindow && lastPeriodSent!==month){
+      lastPeriodSent=month;
+      frame.contentWindow.postMessage({type:"monte-carlo-electricity-period",month},location.origin);
+    }
+  }
+  function choosePeriod(month){
+    if(!validMonth(month))return;
+    const main=$("#month");
+    if(main.value!==month){main.value=month;main.dispatchEvent(new Event("change",{bubbles:true}))}
+    displayPeriod(month);
+  }
+  for(const id of ["unifiedMonth","electricUnifiedMonth"]){
+    $("#"+id)?.addEventListener("change",(event)=>choosePeriod(event.target.value));
+  }
   function openBill(id,month){
     route("electricidad");
     pendingRoute={type:"monte-carlo-electricity-open",id,month};
@@ -15,7 +34,14 @@
     const due=bills.filter((r)=>billMonth(r)===month && (r.workflow==="draft"||r.status==="pending"||r.status==="sent"));
     const list=$("#homeTaskList");if(!list)return;
     list.replaceChildren();
+    displayPeriod(month);
+    const holidayCount=state.entries.filter((entry)=>String(entry.date||"").startsWith(month)).length;
+    $("#moduleHolidayActivity").textContent=holidayCount+(holidayCount===1?" registro":" registros")+" · "+monthLabel(month);
+    const billCount=bills.filter((record)=>billMonth(record)===month).length;
+    $("#moduleElectricActivity").textContent=billCount+(billCount===1?" cobro":" cobros")+" · "+monthLabel(month);
+    if(holidayRows.length){const group=document.createElement("p");group.className="task-group";group.textContent="FERIADOS";list.append(group)}
     for(const row of holidayRows.slice(0,3))list.insertAdjacentHTML("beforeend",row);
+    if(due.length){const group=document.createElement("p");group.className="task-group";group.textContent="ELECTRICIDAD";list.append(group)}
     for(const record of due.slice(0,3)){
       const item=document.createElement("div"),detail=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small"),button=document.createElement("button");
       item.className="task-row";item.dataset.electricTask=record.id;
@@ -50,12 +76,18 @@
         const height=Number(data.height);
         if(Number.isFinite(height)&&height>=300&&height<=12000)frame.style.height=height+"px";
       }
+      if(data?.type==="monte-carlo-electricity-period-changed"){
+        choosePeriod(data.month);
+        return;
+      }
       if(data?.type==="monte-carlo-electricity-records"&&Array.isArray(data.records)){
         bills=data.records.filter((r)=>r&&typeof r.id==="string"&&typeof r.clientName==="string");
         refresh();
       }
     });
     frame.addEventListener("load",()=>{
+      lastPeriodSent="";
+      displayPeriod($("#month")?.value);
       frame.contentWindow?.postMessage({type:"monte-carlo-electricity-request"},location.origin);
       if(pendingRoute)frame.contentWindow?.postMessage(pendingRoute,location.origin);
     });
