@@ -845,15 +845,20 @@ body[data-view="deducciones"] .sidebar { background:#fff; }
 .salary-section .electricity-fallback { color:#315473; }
 #salaryFrame { background:#f3f5f7; }
 
-/* Portada: cinco fotografías, con transiciones suaves. */
-.hero-photo.hero-first{animation:heroPhoto1 30s linear infinite}
-@keyframes heroPhoto1{0%,18%,100%{opacity:1}20%,98%{opacity:0}}
-.hero-photo.hero-second{animation:heroPhoto2 30s linear infinite}
-@keyframes heroPhoto2{0%,18%,40%,100%{opacity:0}20%,38%{opacity:1}}
-.hero-photo.hero-added-1{animation:heroPhoto3 30s linear infinite}
-@keyframes heroPhoto3{0%,38%,60%,100%{opacity:0}40%,58%{opacity:1}}
-.hero-photo.hero-added-2{animation:heroPhoto4 30s linear infinite}
-@keyframes heroPhoto4{0%,58%,80%,100%{opacity:0}60%,78%{opacity:1}}
-.hero-photo.hero-added-3{animation:heroPhoto5 30s linear infinite}
-@keyframes heroPhoto5{0%,78%,100%{opacity:0}80%,98%{opacity:1}}
+/* Portada: siete fotografías, con transiciones suaves. */
+.hero-photo.hero-first{animation:heroPhoto1 42s linear infinite}
+@keyframes heroPhoto1{0%,12.2857%,100%{opacity:1}14.2857%,98%{opacity:0}}
+.hero-photo.hero-second{animation:heroPhoto2 42s linear infinite}
+@keyframes heroPhoto2{0%,12.2857%,28.5714%,100%{opacity:0}14.2857%,26.5714%{opacity:1}}
+.hero-photo.hero-added-1{animation:heroPhoto3 42s linear infinite}
+@keyframes heroPhoto3{0%,26.5714%,42.8571%,100%{opacity:0}28.5714%,40.8571%{opacity:1}}
+.hero-photo.hero-added-2{animation:heroPhoto4 42s linear infinite}
+@keyframes heroPhoto4{0%,40.8571%,57.1429%,100%{opacity:0}42.8571%,55.1429%{opacity:1}}
+.hero-photo.hero-added-3{animation:heroPhoto5 42s linear infinite}
+@keyframes heroPhoto5{0%,55.1429%,71.4286%,100%{opacity:0}57.1429%,69.4286%{opacity:1}}
+.hero-photo.hero-added-4{animation:heroPhoto6 42s linear infinite}
+@keyframes heroPhoto6{0%,69.4286%,85.7143%,100%{opacity:0}71.4286%,83.7143%{opacity:1}}
+.hero-photo.hero-added-5{animation:heroPhoto7 42s linear infinite}
+@keyframes heroPhoto7{0%,83.7143%,100%{opacity:0}85.7143%,98%{opacity:1}}
 @media(prefers-reduced-motion:reduce){.hero-photo-slider .hero-photo{animation:none!important;display:none}.hero-photo-slider .hero-first{display:block;opacity:1}}
+.home-photo-gallery{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin:20px clamp(18px,5vw,80px) 0;padding-bottom:24px}.home-photo-gallery a{display:block;max-width:206px;justify-self:center;width:100%;border-radius:12px;overflow:hidden}.home-photo-gallery img{display:block;width:100%;height:auto;aspect-ratio:1;object-fit:cover}.home-photo-gallery a:focus-visible{outline:3px solid #61705c;outline-offset:3px}@media(max-width:800px){.home-photo-gallery{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:440px){.home-photo-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
