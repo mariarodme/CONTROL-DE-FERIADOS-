@@ -27,7 +27,7 @@ Los feriados iniciales de 2026 corresponden a las fechas de la tabla proporciona
 
 ## Página unificada e instalación móvil
 
-Abrí https://mariarodme.github.io/CONTROL-DE-FERIADOS-/ para entrar a Feriados y Electricidad desde la misma portada. El botón **Buscar** consulta colaboradores, registros, feriados y cobros. **Asuntos por resolver** combina tareas de ambos módulos del mes seleccionado.
+Abrí https://mariarodme.github.io/CONTROL-DE-FERIADOS-/ para elegir entre dos herramientas independientes desde la misma portada. **Control de Feriados** conserva su resumen, período y pendientes de colaboradores; **Electricidad** conserva su calculadora, período, facturas y tareas de cobro. El botón **Buscar** puede consultar ambas herramientas, agrupando los resultados por área. Los datos y los meses no se mezclan.
 
 En Android, abrí el enlace en Chrome y tocá **Instalar** o el menú ⋮ → **Instalar aplicación**. En iPhone, abrilo en Safari y tocá **Compartir → Agregar a pantalla de inicio**. El ícono abre la portada unificada. Los íconos `icon-180.png`, `icon-192.png` y `icon-512.png` son archivos independientes y deben mantenerse en la raíz junto al manifiesto y `sw.js`.
 
