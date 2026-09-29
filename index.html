@@ -511,13 +511,24 @@
     <dialog id="bulkDialog" class="bulk-dialog" aria-labelledby="bulkTitle">
       <form id="bulkForm">
         <div class="dialog-head">
-          <div><span class="dialog-eyebrow">REGISTRO EN GRUPO</span><h2 id="bulkTitle">Registrar colaboradores</h2><p class="bulk-intro">Escogé el estado de cada persona y guardá todo de una vez.</p></div>
+          <div><span class="dialog-eyebrow">REGISTRO EN GRUPO</span><h2 id="bulkTitle">Registrar colaboradores</h2><p class="bulk-intro">Marcá los colaboradores y aplicales el mismo estado, o ajustá cada persona por separado.</p></div>
           <button type="button" class="close" id="closeBulkDialog" aria-label="Cerrar registro en grupo">×</button>
         </div>
         <div class="bulk-filters">
           <label class="field">Feriado <select id="bulkHoliday" required aria-label="Feriado para registrar"></select></label>
           <label class="field">Empresa <select id="bulkCompany" aria-label="Empresa para registro en grupo"><option value="">Todas las empresas</option><option value="Condominio Monte Carlo">Monte Carlo</option><option value="Jacó Beach Onsite Management Services Ltda.">Jacó Beach Onsite</option></select></label>
         </div>
+        <div class="bulk-filters">
+          <label class="field">Estado para los seleccionados <select id="bulkSharedState"><option value="">Escoger estado</option></select></label>
+          <label class="field" id="bulkSharedPaidWrap" hidden>Fecha de pago (opcional)<input type="date" id="bulkSharedPaid" /></label>
+          <label class="field" id="bulkSharedFreeWrap" hidden>Día libre disfrutado (opcional)<input type="date" id="bulkSharedFree" /></label>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="secondary" id="bulkSelectAll">Seleccionar todos sin registro</button>
+          <button type="button" class="secondary" id="bulkClearSelection">Quitar selección</button>
+          <button type="button" class="primary" id="bulkApplyState">Aplicar estado</button>
+        </div>
+        <p id="bulkSelectionInfo" role="status" aria-live="polite"></p>
         <p class="bulk-count" id="bulkCount" role="status"></p>
         <div class="bulk-rows" id="bulkRows"></div>
         <p class="bulk-help">Dejá «Sin registrar» para no crear un registro. Para eliminar uno existente, usá Control General.</p>
@@ -620,7 +631,7 @@
     <script src="firebase-config.js?v=20260927-3"></script>
     <script src="cloud.js?v=20260928-10"></script>
     <script src="xlsx.js?v=20260928-12"></script>
-    <script src="app.js?v=20260929-2"></script>
+    <script src="app.js?v=20260929-3"></script>
     <script src="unified.js?v=20260929-5"></script>
   </body>
 </html>
