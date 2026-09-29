@@ -11,7 +11,7 @@
     <link rel="icon" type="image/svg+xml" href="app-icon.svg" />
     <link rel="apple-touch-icon" href="icon-180.png" />
     <title>Gestión Administrativa · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260929-1" />
+    <link rel="stylesheet" href="styles.css?v=20260929-2" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -79,21 +79,21 @@
               <span class="module-kicker">PERSONAL · JORNADAS</span>
               <strong>Control de Feriados</strong>
               <span>Colaboradores, calendario, estados y días laborados.</span>
-              <span class="module-open">Entrar a Feriados →</span>
+              <span class="module-activity" id="moduleHolidayActivity">Registros del período</span><span class="module-open">Entrar a Feriados →</span>
             </a>
             <a href="#electricidad" class="module-choice">
               <span class="module-symbol" aria-hidden="true">ϟ</span>
               <span class="module-kicker">CONSUMO · COBROS</span>
               <strong>Electricidad</strong>
               <span>Lecturas, facturas, pagos e historial por unidad.</span>
-              <span class="module-open">Entrar a Electricidad →</span>
+              <span class="module-activity" id="moduleElectricActivity">Cobros del período</span><span class="module-open">Entrar a Electricidad →</span>
             </a>
           </div>
           <div class="pwa-callout" id="installCallout" hidden><span aria-hidden="true">▣</span><p><strong>Monte Carlo en tu celular</strong><small>Entrá a Feriados y Electricidad desde un ícono.</small></p><button type="button" id="installAppButton">Instalar</button></div>
           <div class="panel home-urgent">
             <div class="home-urgent-head">
               <div><span class="section-eyebrow">PARA REVISAR</span><h2>Asuntos por resolver</h2><p id="homeTaskPeriod">Del mes seleccionado</p></div>
-              <span id="homeTaskCount" class="count">0 asuntos</span>
+              <div class="urgent-actions"><label for="unifiedMonth">Mes de ambas áreas <input id="unifiedMonth" type="month" aria-label="Mes para Feriados y Electricidad"></label><span id="homeTaskCount" class="count">0 asuntos</span></div>
             </div>
             <div class="task-list" id="homeTaskList"></div>
             <a href="#resumen" id="homeTaskMore" class="home-task-more" hidden>Ver todos los asuntos →</a>
@@ -102,11 +102,11 @@
         <section id="electricidad" class="electricity-section">
           <div class="section-heading electricity-heading">
             <div><span class="section-eyebrow">MONTE CARLO · COBROS</span><h2>Electricidad</h2>
-              <p class="section-intro">Calculadora, historial de facturas, estados de pago y reporte mensual.</p></div>
+              <p class="section-intro">Cobros y tareas del mismo período que ves en el inicio.</p></div><label class="field compact unified-electric-month" for="electricUnifiedMonth">Mes <input id="electricUnifiedMonth" type="month" aria-label="Mes para Feriados y Electricidad"></label>
           </div>
           <p class="electricity-fallback"><a href="../CALCULADORA-ELECTRICIDAD-/" target="_blank" rel="noopener">Abrir Electricidad en otra pestaña ↗</a></p>
           <iframe id="electricityFrame" title="Calculadora e historial de electricidad"
-            src="../CALCULADORA-ELECTRICIDAD-/?embed=1&amp;v=20260929-1"
+            src="../CALCULADORA-ELECTRICIDAD-/?embed=1&amp;v=20260929-2"
             loading="eager" referrerpolicy="same-origin"></iframe>
         </section>
         <section id="equipo" class="team-section">
@@ -599,6 +599,6 @@
     <script src="cloud.js?v=20260928-10"></script>
     <script src="xlsx.js?v=20260928-12"></script>
     <script src="app.js?v=20260929-1"></script>
-    <script src="unified.js?v=20260929-1"></script>
+    <script src="unified.js?v=20260929-2"></script>
   </body>
 </html>
