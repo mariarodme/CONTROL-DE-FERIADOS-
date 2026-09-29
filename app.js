@@ -149,6 +149,7 @@ function personEmployedOn(person, date) {
   return (!start || date >= start) && (!end || date <= end) && (!person.archivedAt || date <= person.archivedAt.slice(0, 10));
 }
 const isArchived = (person) => Boolean(person.archivedAt || person.endDate && person.endDate < localToday());
+const selectedRecords = new Set();
 let entryRevision, employeeRevision, bulkRevision, holidayRevision;
 let state = load(),
   returnToCalendarDate = null,
@@ -340,7 +341,7 @@ $("#closeReviewDialog").addEventListener("click", (event) => {
 });
 function historyDescription(entity, value) {
   if (!value) return "";
-  if (entity === "colaborador") return `${value.name} · ${value.company}${value.startDate ? " · Ingreso: " + displayDate(value.startDate) : ""}${value.endDate ? " · Salida: " + displayDate(value.endDate) : ""}${value.archivedAt ? " · Archivado" : ""}`;
+  if (entity === "colaborador") return `${value.name} · ${value.company}${value.startDate ? " · Ingreso: " + displayDate(value.startDate) : ""}${value.endDate ? " · Salida: " + displayDate(value.endDate) : ""}${value.archivedAt ? " · Archivado" : ""}${value.adminNote ? " · Notas: " + value.adminNote : ""}`;
   if (entity === "feriado") return `${displayDate(value.date)} · ${value.name}`;
   return `${displayDate(value.date)} · ${value.type === "feriado" ? "Feriado" : "Ordinario"} · ${TRACKING[value.trackingState] || TRACKING.no_aplica}${value.paidAt ? " · Pagado: " + displayDate(value.paidAt) : ""}${value.compensatoryDate ? " · Libre disfrutado: " + displayDate(value.compensatoryDate) : ""}${value.note ? " · " + value.note : ""}`;
 }
@@ -589,6 +590,8 @@ function renderEmployeeCard(person) {
 function renderPersonProfile() {
   const person = state.employees.find((item) => item.id === activePersonId);
   $("#downloadPerson").disabled = $("#printPerson").disabled = !person;
+  $("#personGeneralNote").hidden = !person?.adminNote;
+  $("#personGeneralNoteText").textContent = person?.adminNote || "";
   if (!person) {
     $("#personTitle").textContent = "Elegí un colaborador";
     $("#personCompany").textContent = "";
@@ -746,15 +749,18 @@ function render() {
       (x) => x.trackingState === value,
     ).length;
   const rows = filters();
+  const selectable = new Set(rows.filter((entry) => !isClosed(entry.date)).map((entry) => entry.id));
+  for (const selected of selectedRecords) if (!selectable.has(selected)) selectedRecords.delete(selected);
   $("#resultCount").textContent =
     `${rows.length} registro${rows.length === 1 ? "" : "s"}`;
   $("#empty").hidden = rows.length > 0;
   $("#rows").innerHTML = rows
     .map(
       (x) =>
-        `<tr><td data-label="Fecha">${escapeHtml(displayDate(x.date))}</td><td data-label="Colaborador">${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</td><td data-label="Empresa">${escapeHtml(employee(x)?.company || "—")}</td><td data-label="Tipo"><span class="pill ${x.type === "feriado" ? "feriado" : ""}">${x.type === "feriado" ? "Feriado" : "Ordinario"}</span></td><td data-label="Estado"><span class="tracking tracking-${escapeHtml(x.trackingState || "no_aplica")}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState] || TRACKING.no_aplica)}</span>${x.paidAt ? `<small class="status-date">Pago: ${escapeHtml(displayDate(x.paidAt))}</small>` : ""}${x.compensatoryDate ? `<small class="status-date">Día libre: ${escapeHtml(displayDate(x.compensatoryDate))}</small>` : ""}</td><td data-label="Comentarios">${escapeHtml(x.note) || '<span class="muted">—</span>'}</td><td data-label="Acciones"><div class="actions"><button class="link" data-edit="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""}>Editar</button><button class="link danger" data-delete="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""}>Eliminar</button></div></td></tr>`,
+        `<tr><td class="record-select-cell" data-label="Seleccionar"><input type="checkbox" data-select-record="${escapeHtml(x.id)}" aria-label="Seleccionar registro de ${escapeHtml(employee(x)?.name || "colaborador")} del ${escapeHtml(displayDate(x.date))}"${selectedRecords.has(x.id) ? " checked" : ""}${isClosed(x.date) ? " disabled" : ""} /></td><td data-label="Fecha">${escapeHtml(displayDate(x.date))}</td><td data-label="Colaborador">${escapeHtml(employee(x)?.name || "Colaborador eliminado")}</td><td data-label="Empresa">${escapeHtml(employee(x)?.company || "—")}</td><td data-label="Tipo"><span class="pill ${x.type === "feriado" ? "feriado" : ""}">${x.type === "feriado" ? "Feriado" : "Ordinario"}</span></td><td data-label="Estado"><span class="tracking tracking-${escapeHtml(x.trackingState || "no_aplica")}"><span class="tracking-dot" aria-hidden="true"></span>${escapeHtml(TRACKING[x.trackingState] || TRACKING.no_aplica)}</span>${x.paidAt ? `<small class="status-date">Pago: ${escapeHtml(displayDate(x.paidAt))}</small>` : ""}${x.compensatoryDate ? `<small class="status-date">Día libre: ${escapeHtml(displayDate(x.compensatoryDate))}</small>` : ""}</td><td data-label="Comentarios">${escapeHtml(x.note) || '<span class="muted">—</span>'}</td><td data-label="Acciones"><div class="actions"><button class="link" data-edit="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""}>Editar</button><button class="link danger" data-delete="${escapeHtml(x.id)}"${isClosed(x.date) ? " disabled title=\"Período cerrado\"" : ""}>Eliminar</button></div></td></tr>`,
     )
     .join("");
+  updateRecordSelection();
   const visiblePeople = state.employees.filter((person) =>
     (!teamFilter || person.company === teamFilter) &&
     (teamStatus === "archived" ? isArchived(person) : !isArchived(person)));
@@ -1144,6 +1150,7 @@ function openEmployee(e) {
     f.elements.company.value = e.company;
     f.elements.startDate.value = e.startDate || "";
     f.elements.endDate.value = e.endDate || "";
+    f.elements.adminNote.value = e.adminNote || "";
   } else f.elements.startDate.value = localToday();
   $("#employeeDialogTitle").textContent = e
     ? "Editar colaborador"
@@ -1185,7 +1192,8 @@ $("#employeeForm").onsubmit = (event) => {
     e.company = company;
     e.startDate = startDate;
     e.endDate = endDate;
-  } else state.employees.push({ id: id(), name, company, startDate, endDate });
+    e.adminNote = f.elements.adminNote.value.trim().slice(0, 2000);
+  } else state.employees.push({ id: id(), name, company, startDate, endDate, adminNote: f.elements.adminNote.value.trim().slice(0,2000) });
   $("#employeeDialog").close();
   save({confirmation: `${name} · ${editingEmployee ? "ficha actualizada" : "colaborador agregado"}`});
 };
@@ -1698,6 +1706,7 @@ $("#importBackupFile").addEventListener("change", async (event) => {
           startDate: validISODate(incoming.startDate) ? incoming.startDate : "",
           endDate: validISODate(incoming.endDate) ? incoming.endDate : "",
           archivedAt: typeof incoming.archivedAt === "string" && !Number.isNaN(Date.parse(incoming.archivedAt)) ? incoming.archivedAt : ""};
+        existing.adminNote = String(incoming.adminNote || "").trim().slice(0,2000);
         candidate.employees.push(existing);
         peopleAdded++;
       }
@@ -1867,7 +1876,172 @@ $("#downloadReport").onclick = () => {
     $("#reportDownloadStatus").textContent = "No se pudo preparar el archivo Excel. Volvé a cargar la página e intentá de nuevo.";
   }
 };
+
+function updateRecordSelection() {
+  const visible = filters().filter((entry) => !isClosed(entry.date));
+  $("#selectedRecordCount").textContent = `${selectedRecords.size} registro(s) seleccionados`;
+  $("#openRecordUpdate").disabled = selectedRecords.size === 0;
+  const selectAll = $("#selectVisibleRecords");
+  selectAll.disabled = visible.length === 0;
+  selectAll.checked = visible.length > 0 && visible.every((entry) => selectedRecords.has(entry.id));
+  selectAll.indeterminate = !selectAll.checked && visible.some((entry) => selectedRecords.has(entry.id));
+}
+$("#rows").addEventListener("change", (event) => {
+  const input = event.target.closest("[data-select-record]");
+  if (!input) return;
+  const entry = state.entries.find((entry) => entry.id === input.dataset.selectRecord);
+  if (!entry || isClosed(entry.date)) return;
+  if (input.checked) selectedRecords.add(entry.id); else selectedRecords.delete(entry.id);
+  updateRecordSelection();
+});
+$("#selectVisibleRecords").onchange = (event) => {
+  for (const entry of filters().filter((entry) => !isClosed(entry.date))) {
+    if (event.target.checked) selectedRecords.add(entry.id); else selectedRecords.delete(entry.id);
+  }
+  render();
+};
+$("#clearRecordSelection").onclick = () => { selectedRecords.clear(); render(); };
+let recordUpdateToken, recordUpdateSnapshot = [];
+$("#recordUpdateState").innerHTML += Object.entries(TRACKING).map(([value,label]) =>
+  `<option value="${value}">${escapeHtml(label)}</option>`).join("");
+function updateRecordPreview() {
+  const status = $("#recordUpdateState").value;
+  $("#recordUpdatePaidWrap").hidden = status !== "pagado";
+  $("#recordUpdateFreeWrap").hidden = status !== "libre_disfrutado";
+  $("#recordUpdatePaid").required = status === "pagado";
+  $("#recordUpdateFree").required = status === "libre_disfrutado";
+  $("#recordUpdateSummary").textContent = `${recordUpdateSnapshot.length} registro(s) · ${status ? TRACKING[status] : "Escogé el nuevo estado"}`;
+  $("#recordUpdatePreview").innerHTML = "<table><thead><tr><th>Colaborador</th><th>Fecha</th><th>Estado actual</th><th>Nuevo estado</th></tr></thead><tbody>" +
+    recordUpdateSnapshot.map((entry) => `<tr><td>${escapeHtml(employee(entry)?.name || "Colaborador")}</td><td>${escapeHtml(displayDate(entry.date))}</td><td>${escapeHtml(TRACKING[entry.trackingState])}</td><td>${escapeHtml(TRACKING[status] || "—")}</td></tr>`).join("") + "</tbody></table>";
+}
+$("#openRecordUpdate").onclick = () => {
+  recordUpdateSnapshot = structuredClone(state.entries.filter((entry) => selectedRecords.has(entry.id)));
+  if (!recordUpdateSnapshot.length || !ensureOpen(...recordUpdateSnapshot.map((entry) => entry.date))) return;
+  recordUpdateToken = window.jornadasCloud?.revisionToken?.();
+  $("#recordUpdateForm").reset();
+  updateRecordPreview();
+  $("#recordUpdateDialog").showModal();
+};
+$("#recordUpdateState").onchange = updateRecordPreview;
+$("#closeRecordUpdate").onclick = $("#cancelRecordUpdate").onclick = () => $("#recordUpdateDialog").close();
+$("#recordUpdateForm").onsubmit = (event) => {
+  event.preventDefault();
+  if (!formIsCurrent(recordUpdateToken)) return;
+  const status = $("#recordUpdateState").value;
+  if (!Object.hasOwn(TRACKING, status)) return alert("Escogé un estado válido.");
+  const paidAt = status === "pagado" ? $("#recordUpdatePaid").value : "";
+  const compensatoryDate = status === "libre_disfrutado" ? $("#recordUpdateFree").value : "";
+  if (status === "pagado" && !validISODate(paidAt) || status === "libre_disfrutado" && !validISODate(compensatoryDate))
+    return alert("Ingresá la fecha de pago o del día libre disfrutado.");
+  if (!recordUpdateSnapshot.length || recordUpdateSnapshot.some((before) => {
+    const current = state.entries.find((entry) => entry.id === before.id);
+    return !current || JSON.stringify(current) !== JSON.stringify(before);
+  })) return alert("Los registros cambiaron. Cerrá este cuadro y revisá la selección nuevamente.");
+  if (!ensureOpen(...recordUpdateSnapshot.map((entry) => entry.date))) return;
+  for (const before of recordUpdateSnapshot) {
+    const entry = state.entries.find((entry) => entry.id === before.id);
+    entry.trackingState = status;
+    entry.paidAt = paidAt;
+    entry.compensatoryDate = compensatoryDate;
+  }
+  if (save({confirmation: `${recordUpdateSnapshot.length} registro(s) actualizados · ${TRACKING[status]}`}) !== false) {
+    selectedRecords.clear();
+    $("#recordUpdateDialog").close();
+    render();
+  }
+};
+$("#editPersonNotes").onclick = () => {
+  const person = state.employees.find((person) => person.id === activePersonId);
+  if (person) { openEmployee(person); $("#employeeForm").elements.adminNote.focus(); }
+};
+for (const selector of ["#recordUpdateDialog", "#printPreviewDialog"]) {
+  $(selector).addEventListener("click", (event) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom)
+      event.currentTarget.close();
+  });
+}
+function printTable(rows) {
+  return '<table class="clean-print-table"><thead><tr><th>Fecha</th><th>Colaborador</th><th>Empresa</th><th>Día</th><th>Estado</th><th>Pago / día libre</th><th>Comentarios</th></tr></thead><tbody>' +
+    rows.map((entry) => `<tr><td>${escapeHtml(displayDate(entry.date))}</td><td>${escapeHtml(employee(entry)?.name || "Colaborador eliminado")}</td><td>${escapeHtml(employee(entry)?.company || "")}</td><td>${escapeHtml(state.holidays.find((holiday) => holiday.date === entry.date)?.name || (entry.type === "feriado" ? "Feriado" : "Ordinario"))}</td><td>${escapeHtml(TRACKING[entry.trackingState] || "")}</td><td>${escapeHtml(entry.paidAt ? "Pago: " + displayDate(entry.paidAt) : entry.compensatoryDate ? "Libre: " + displayDate(entry.compensatoryDate) : "—")}</td><td>${escapeHtml(entry.note || "")}</td></tr>`).join("") + '</tbody></table>';
+}
+function openCleanPrint(title, period, rows, note = "") {
+  $("#printPreviewContent").innerHTML = `<article class="clean-print-document"><header><small>MONTE CARLO · JACÓ BEACH ONSITE</small><h1>${escapeHtml(title)}</h1><p>${escapeHtml(period)}</p><p>${rows.length} registro(s) · Preparado el ${escapeHtml(displayDate(localToday()))}</p></header>${note ? `<div class="clean-print-note"><strong>Notas del colaborador</strong><p>${escapeHtml(note)}</p></div>` : ""}${rows.length ? printTable(rows) : '<p>No hay registros para este período.</p>'}</article>`;
+  $("#printPreviewDialog").showModal();
+}
+$("#printControl").onclick = () => openCleanPrint("Control de días registrados",
+  monthLabel($("#month").value) + " · " + ($("#companyFilter").value || "Todas las empresas") +
+  ($("#trackingFilter").value ? " · " + (TRACKING[$("#trackingFilter").value] || "Todos los pendientes") : "") +
+  ($("#holidayFilter").value ? " · " + displayDate($("#holidayFilter").value) : "") +
+  ($("#search").value ? " · Búsqueda: " + $("#search").value : ""), filters());
+$("#printPerson").onclick = () => {
+  const person = state.employees.find((person) => person.id === activePersonId);
+  if (!person) return;
+  const year = $("#personYear").value;
+  const rows = state.entries.filter((entry) => entry.employeeId === person.id && (!year || entry.date.startsWith(year))).sort((a,b) => a.date.localeCompare(b.date));
+  openCleanPrint("Ficha de " + person.name, person.company + " · " + (year ? "Año " + year : "Todos los años"), rows, person.adminNote || "");
+};
+$("#printReport").onclick = () => openCleanPrint(REPORT_LABELS[reportKind][0],
+  reportPeriodText() + " · " + ($("#reportCompany").value || "Todas las empresas"), reportRecords());
+$("#closePrintPreview").onclick = $("#cancelPrintPreview").onclick = () => $("#printPreviewDialog").close();
+function clearPrintSheet() {
+  delete document.body.dataset.cleanPrint;
+  $("#printSheet")?.remove();
+}
+$("#confirmCleanPrint").onclick = () => {
+  clearPrintSheet();
+  const sheet = document.createElement("div");
+  sheet.id = "printSheet";
+  sheet.innerHTML = $("#printPreviewContent").innerHTML;
+  document.body.append(sheet);
+  document.body.dataset.cleanPrint = "true";
+  window.print();
+};
+window.addEventListener("afterprint", clearPrintSheet);
+const LAST_FILTERS_KEY = "jaco-jornadas-ultima-vista-v1";
+const rememberedFields = ["month", "search", "companyFilter", "typeFilter", "trackingFilter", "holidayFilter",
+  "matrixYear", "matrixCompany", "holidayYear", "reportMonth", "reportYear", "reportCompany", "reportCutoff"];
+function lastFiltersKey() { return LAST_FILTERS_KEY + "-" + (window.jornadasCloud?.storageScope?.() || "dispositivo"); }
+function rememberFilters() {
+  const fields = Object.fromEntries(rememberedFields.map((key) => [key, $("#" + key).value]));
+  try { localStorage.setItem(lastFiltersKey(), JSON.stringify({fields,teamFilter,teamStatus,reportKind})); } catch {}
+}
+function restoreFilters() {
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem(lastFiltersKey()) || "null"); } catch { return; }
+  if (!saved || typeof saved !== "object") return;
+  renderHolidayFilter();
+  renderReports();
+  for (const key of rememberedFields) {
+    const element = $("#" + key), value = saved.fields?.[key];
+    if (typeof value !== "string" || value.length > 150) continue;
+    if (key === "month" && !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) continue;
+    if (element.tagName === "SELECT" && ![...element.options].some((option) => option.value === value)) continue;
+    element.value = value;
+  }
+  teamFilter = companies.includes(saved.teamFilter) ? saved.teamFilter : "";
+  teamStatus = saved.teamStatus === "archived" ? "archived" : "active";
+  reportKind = Object.hasOwn(REPORT_LABELS, saved.reportKind) ? saved.reportKind : "mensual";
+  document.querySelectorAll("[data-team-filter]").forEach((button) => {
+    const active = button.dataset.teamFilter === teamFilter;
+    button.classList.toggle("active",active); button.setAttribute("aria-pressed",String(active));
+  });
+  document.querySelectorAll("[data-team-status]").forEach((button) => {
+    const active = button.dataset.teamStatus === teamStatus;
+    button.classList.toggle("active",active); button.setAttribute("aria-pressed",String(active));
+  });
+}
+document.addEventListener("change", (event) => {
+  if (rememberedFields.includes(event.target.id) || event.target.id === "controlMonth") rememberFilters();
+});
+document.addEventListener("input", (event) => { if (event.target.id === "search") rememberFilters(); });
+document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-team-filter],[data-team-status],[data-report-kind],[data-quick-filter],[data-summary-state],#clearFilters,#applyPreset,#previousMonth,#nextMonth"))
+    setTimeout(rememberFilters,0);
+});
+
 $("#month").value = new Date().toISOString().slice(0, 7);
+restoreFilters();
 render();
 showView(location.hash.slice(1) || "inicio", false);
 document.documentElement.classList.add("js-ready");
@@ -1885,6 +2059,8 @@ window.jornadasCloud?.start({
     if (!Array.isArray(data?.employees) || !Array.isArray(data?.entries) || !Array.isArray(data?.holidays))
       throw new Error("Los datos en línea tienen un formato inválido.");
     state = data;
+    selectedRecords.clear();
+    restoreFilters();
     lastBusinessSnapshot = businessSnapshot(state);
     localStorage.setItem(KEY, JSON.stringify(state));
     lastSavedState = structuredClone(state);
