@@ -797,17 +797,9 @@ body[data-view="inicio"] .home-urgent{margin-top:24px}
 @media(max-width:620px){.global-search-trigger{margin-left:auto}.global-search-dialog{padding:20px}.pwa-callout{margin:16px 16px 0}.pwa-callout button{padding:9px 12px}}
 @media(max-width:1450px){.global-search-trigger span:last-child{display:none}.global-search-trigger{padding:9px 10px}}
 
-/* Período y señales compartidas entre las dos áreas */
-.module-activity{display:inline-flex;margin-top:10px;padding:7px 10px;border-radius:7px;background:#edf0e8;color:#3f5946;font-size:.73rem;font-weight:700}
-.module-choice .module-open{margin-top:3px}
-.urgent-actions{display:flex;align-items:end;gap:14px;flex-wrap:wrap;justify-content:flex-end}
-.urgent-actions label{display:grid;gap:5px;color:#617168;font-size:.72rem;font-weight:700}
-.urgent-actions input,.unified-electric-month input{min-height:39px;padding:7px 10px;border:1px solid #cbd2c7;border-radius:7px;background:#fffdfa;color:#283c30;font:inherit}
-.task-group{grid-column:1/-1;margin:10px 0 0;color:#728071;font-size:.67rem;font-weight:800;letter-spacing:.14em}
-.unified-electric-month{align-self:center;white-space:nowrap}
-@media(max-width:620px){
-  .urgent-actions{width:100%;justify-content:space-between}
-  .urgent-actions input{max-width:155px}
-  .electricity-heading{align-items:start;gap:12px}
-  .unified-electric-month{align-self:start}
-}
+/* Portada como acceso a dos herramientas independientes */
+body[data-view="inicio"] #resumen,
+body[data-view="inicio"] .home-cards{display:none!important}
+#resumen .home-urgent{margin:0 0 26px}
+#resumen .home-urgent-head p{text-transform:none}
+@media(max-width:620px){#resumen .home-urgent{margin:0 0 20px}}
