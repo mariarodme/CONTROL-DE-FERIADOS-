@@ -11,7 +11,7 @@
     <link rel="icon" type="image/svg+xml" href="app-icon.svg" />
     <link rel="apple-touch-icon" href="icon-180.png" />
     <title>Gestión Administrativa · Monte Carlo & Onsite</title>
-    <link rel="stylesheet" href="styles.css?v=20260929-14" />
+    <link rel="stylesheet" href="styles.css?v=20260929-15" />
   </head>
   <body data-view="inicio">
     <div class="shell">
@@ -164,6 +164,7 @@
           <a class="profile-back" href="#equipo">← Volver a colaboradores</a>
           <div class="section-heading"><div><span class="team-eyebrow">FICHA DEL COLABORADOR</span><h2 id="personTitle">Elegí un colaborador</h2><p id="personCompany" class="section-intro"></p></div>
             <label class="field compact">Año <select id="personYear" aria-label="Año de la ficha"><option value="">Todos los años</option></select></label></div>
+          <div class="panel person-general-note" id="personGeneralNote" hidden><h3>Notas del colaborador</h3><p id="personGeneralNoteText"></p><button type="button" class="link" id="editPersonNotes">Editar notas</button></div>
           <div class="profile-stats" id="personSummary"></div>
           <div class="profile-records" id="personRecords"></div>
           <div class="profile-download"><button type="button" class="secondary" id="downloadPerson">Descargar ficha en Excel</button><button type="button" class="secondary" id="printPerson">Imprimir / PDF</button><span id="personDownloadStatus" role="status" aria-live="polite"></span></div>
@@ -226,7 +227,7 @@
             <div>
               <h2>Días registrados</h2>
             </div>
-            <div class="section-actions"><span id="resultCount" class="count"></span><button class="secondary" id="bulkFromControl" type="button">Registrar varios</button><button class="primary" id="newEntryFromControl" type="button">+ Nuevo registro</button></div>
+            <div class="section-actions"><span id="resultCount" class="count"></span><button class="secondary" id="printControl" type="button">Vista para imprimir</button><button class="secondary" id="bulkFromControl" type="button">Registrar varios</button><button class="primary" id="newEntryFromControl" type="button">+ Nuevo registro</button></div>
           </div>
           <div class="panel">
             <div class="filters">
@@ -276,10 +277,12 @@
               >
             </div>
             <div class="saved-filters"><div class="quick-filters" aria-label="Filtros rápidos"><button type="button" class="secondary" data-quick-filter="payment">Pagos pendientes</button><button type="button" class="secondary" data-quick-filter="free">Días libres pendientes</button><button type="button" class="secondary" data-quick-filter="monte">Pendientes Monte Carlo</button><button type="button" class="link" id="clearFilters">Limpiar filtros</button></div><div class="preset-controls"><label class="field">Nombre de la vista<input id="presetName" maxlength="40" placeholder="Ej.: pagos de septiembre" /></label><button type="button" class="secondary" id="savePreset">Guardar filtro</button><label class="field">Filtros guardados<select id="savedPreset"><option value="">Seleccioná uno</option></select></label><button type="button" class="secondary" id="applyPreset">Aplicar</button><button type="button" class="link danger" id="deletePreset">Eliminar</button></div><p id="presetStatus" role="status" aria-live="polite"></p></div>
+            <div class="record-selection-bar"><span id="selectedRecordCount" role="status">0 registros seleccionados</span><button type="button" class="secondary" id="clearRecordSelection">Quitar selección</button><button type="button" class="primary" id="openRecordUpdate" disabled>Actualizar seleccionados</button></div>
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
+                    <th class="record-select-cell"><input type="checkbox" id="selectVisibleRecords" aria-label="Seleccionar registros visibles de meses abiertos" /></th>
                     <th>FECHA</th>
                     <th>COLABORADOR</th>
                     <th>EMPRESA</th>
@@ -449,6 +452,21 @@
         </section>
       </main>
     </div>
+    <dialog id="recordUpdateDialog" aria-labelledby="recordUpdateTitle">
+      <form id="recordUpdateForm">
+        <div class="dialog-head"><div><span class="dialog-eyebrow">ACTUALIZACIÓN EN GRUPO</span><h2 id="recordUpdateTitle">Actualizar registros seleccionados</h2></div><button type="button" class="close" id="closeRecordUpdate" aria-label="Cerrar actualización">×</button></div>
+        <p>Solo cambiarán el estado y la fecha correspondiente. Se conservarán los comentarios y las fechas de los feriados.</p>
+        <div class="form-grid"><label class="field full">Nuevo estado<select id="recordUpdateState" required><option value="">Escoger estado</option></select></label>
+        <label class="field" id="recordUpdatePaidWrap" hidden>Fecha de pago<input type="date" id="recordUpdatePaid" /></label>
+        <label class="field" id="recordUpdateFreeWrap" hidden>Día libre disfrutado<input type="date" id="recordUpdateFree" /></label></div>
+        <p id="recordUpdateSummary" role="status"></p><div class="table-wrap" id="recordUpdatePreview"></div>
+        <div class="dialog-actions"><button type="button" class="secondary" id="cancelRecordUpdate">Cancelar</button><button type="submit" class="primary">Guardar cambios</button></div>
+      </form>
+    </dialog>
+    <dialog id="printPreviewDialog" class="print-preview-dialog" aria-labelledby="printPreviewTitle">
+      <div class="dialog-head"><h2 id="printPreviewTitle">Vista para imprimir</h2><button type="button" class="close" id="closePrintPreview" aria-label="Cerrar vista para imprimir">×</button></div>
+      <div id="printPreviewContent"></div><div class="dialog-actions"><button type="button" class="secondary" id="cancelPrintPreview">Cerrar</button><button type="button" class="primary" id="confirmCleanPrint">Imprimir / Guardar PDF</button></div>
+    </dialog>
     <dialog id="employeeDialog">
       <form id="employeeForm">
         <div class="dialog-head">
@@ -483,7 +501,7 @@
                 Jacó Beach Onsite Management Services Ltda.
               </option>
             </select></label
-          ><label class="field">Fecha de ingreso (opcional)<input name="startDate" type="date" /></label><label class="field">Fecha de salida (opcional)<input name="endDate" type="date" /></label><p class="field full employee-dates-hint">Estas fechas determinan en cuáles feriados debe aparecer el colaborador. Si no conocés la fecha de ingreso de alguien ya registrado, podés dejarla vacía.</p>
+          ><label class="field">Fecha de ingreso (opcional)<input name="startDate" type="date" /></label><label class="field">Fecha de salida (opcional)<input name="endDate" type="date" /></label><label class="field full">Notas del colaborador (opcional)<textarea name="adminNote" rows="3" maxlength="2000" placeholder="Aclaraciones generales para su ficha"></textarea></label><p class="field full employee-dates-hint">Estas fechas determinan en cuáles feriados debe aparecer el colaborador. Si no conocés la fecha de ingreso de alguien ya registrado, podés dejarla vacía.</p>
         </div>
         <div class="dialog-actions">
           <button type="button" class="secondary" id="cancelEmployeeDialog">
@@ -631,7 +649,7 @@
     <script src="firebase-config.js?v=20260927-3"></script>
     <script src="cloud.js?v=20260928-10"></script>
     <script src="xlsx.js?v=20260928-12"></script>
-    <script src="app.js?v=20260929-3"></script>
+    <script src="app.js?v=20260929-4"></script>
     <script src="unified.js?v=20260929-5"></script>
   </body>
 </html>
