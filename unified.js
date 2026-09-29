@@ -1,6 +1,22 @@
 "use strict";
 (() => {
   const frame=document.getElementById("electricityFrame");
+  const salaryFrame=document.getElementById("salaryFrame");
+  if(salaryFrame){
+    salaryFrame.addEventListener("load",()=>{
+      try{
+        const doc=salaryFrame.contentDocument;
+        if(!doc)return;
+        const resize=()=>{salaryFrame.style.height=Math.max(900,doc.documentElement.scrollHeight,doc.body.scrollHeight)+8+"px"};
+        resize();
+        if("ResizeObserver" in window){
+          const observer=new ResizeObserver(resize);
+          observer.observe(doc.documentElement);
+          observer.observe(doc.body);
+        }
+      }catch(_error){/* El enlace externo sigue disponible si el navegador bloquea el ajuste de altura. */}
+    });
+  }
   let bills=[], pendingRoute=null;
   const $=(s)=>document.querySelector(s);
   const norm=(value)=>String(value??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("es").trim();
