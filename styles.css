@@ -817,6 +817,7 @@ body[data-view="inicio"] .home-cards{display:none!important}
     grid-template-columns:205px minmax(0,1fr) auto auto;
     grid-template-rows:64px 42px;
     column-gap:20px;
+    row-gap:0;
     align-items:center;
   }
   .brand{grid-column:1;grid-row:1}
