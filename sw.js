@@ -1,5 +1,5 @@
-const CACHE_NAME="monte-carlo-unificado-v1";
-const BASE="/CONTROL-DE-FERIADOS-/";
+const CACHE_NAME="monte-carlo-unificado-v2";
+const BASE=new URL("./",self.location.href).pathname;
 const CORE=["index.html","styles.css","app.js","unified.js","cloud.js","firebase-config.js","xlsx.js","manifest.webmanifest","app-icon.svg","icon-180.png","icon-192.png","icon-512.png","monte_carlo_pool_hero.jpg","monte_carlo_office_hero.jpg"].map((name)=>BASE+name);
 self.addEventListener("install",(event)=>{
   self.skipWaiting();
