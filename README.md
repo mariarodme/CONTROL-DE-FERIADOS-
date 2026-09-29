@@ -25,6 +25,14 @@ El botón de tres rayitas abre un menú nativo con Inicio y todas las secciones,
 
 Los feriados iniciales de 2026 corresponden a las fechas de la tabla proporcionada. El estado se elige manualmente; la página no calcula pagos. Los registros de versiones anteriores conservan la fecha, el colaborador y los comentarios. Cuando no tenían un estado elegido, aparecen con **No aplica** para que puedas revisarlos.
 
+## Página unificada e instalación móvil
+
+Abrí https://mariarodme.github.io/CONTROL-DE-FERIADOS-/ para entrar a Feriados y Electricidad desde la misma portada. El botón **Buscar** consulta colaboradores, registros, feriados y cobros. **Asuntos por resolver** combina tareas de ambos módulos del mes seleccionado.
+
+En Android, abrí el enlace en Chrome y tocá **Instalar** o el menú ⋮ → **Instalar aplicación**. En iPhone, abrilo en Safari y tocá **Compartir → Agregar a pantalla de inicio**. El ícono abre la portada unificada. Los íconos `icon-180.png`, `icon-192.png` y `icon-512.png` son archivos independientes y deben mantenerse en la raíz junto al manifiesto y `sw.js`.
+
+El historial de Electricidad se guarda en el dispositivo hasta que Firebase Realtime Database permita la ruta privada `electricity/$uid`. El archivo [`database.rules.json`](database.rules.json) ya incluye esa ruta sin abrir las facturas del usuario a otras personas. Para activarla, entrá en **Firebase Console → control-de-feriados → Realtime Database → Rules**, compará las reglas actuales con el archivo. Agregá solo el bloque privado **electricity** si falta, sin cambiar las reglas de **users**, y tocá **Publicar**. Después ingresá con la misma cuenta de Google en ambos dispositivos y, en Electricidad → Historial, usá **Subir facturas de este dispositivo** si aparece. Verificá el mensaje **Guardado en línea** y comprobá una factura en el otro dispositivo. El bloque debe permitir lectura y escritura únicamente cuando `auth.uid === $uid`; no activés acceso público para las facturas.
+
 ## Datos y acceso
 
 GitHub Pages solo publica los archivos. Antes de configurar la nube, los datos se guardan en el navegador actual y la página lo indica expresamente. **El código incluye nombres reales en `app.js`: si el repositorio es público, cualquier persona podrá verlos.** No subás respaldos JSON ni CSV con registros al repositorio público.
