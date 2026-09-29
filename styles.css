@@ -833,3 +833,14 @@ body[data-view="inicio"] .home-cards{display:none!important}
   #sideNav a{padding:12px 0 10px}
   #menuPanel{top:102px;right:max(24px,3vw)}
 }
+
+
+/* Área salarial con identidad neutra y azul oscuro. */
+body[data-view="deducciones"] { background:#f3f5f7; color:#202b36; }
+body[data-view="deducciones"] .sidebar { background:#fff; }
+.salary-section { color:#202b36; }
+.salary-section .section-eyebrow { color:#63788d; }
+.salary-section .section-heading h2 { color:#202b36; }
+.salary-section .section-intro { color:#637184; }
+.salary-section .electricity-fallback { color:#315473; }
+#salaryFrame { background:#f3f5f7; }
