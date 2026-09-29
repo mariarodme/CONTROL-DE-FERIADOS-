@@ -845,25 +845,19 @@ body[data-view="deducciones"] .sidebar { background:#fff; }
 .salary-section .electricity-fallback { color:#315473; }
 #salaryFrame { background:#f3f5f7; }
 
-/* Portada: mosaico y fotografías alternadas. */
-.hero-mosaic{position:absolute;inset:0;background:linear-gradient(90deg,#273425df,#27342570),url('images/monte-carlo-jardines-5.jpg') center/cover;opacity:0}
-.hero-mosaic-grid{position:absolute;right:5%;top:50%;transform:translateY(-50%);width:min(424px,44%);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.hero-mosaic-grid img{display:block;width:100%;height:auto;aspect-ratio:1;object-fit:cover;border-radius:10px;border:2px solid #ffffff70;box-shadow:0 8px 24px #0003}
-.hero-mosaic{animation:heroScene1 48s linear infinite}
-@keyframes heroScene1{0%,10.5%,100%{opacity:1}12.5%,98%{opacity:0}}
-.hero-photo.hero-first{animation:heroScene2 48s linear infinite}
-@keyframes heroScene2{0%,10.5%,25%,100%{opacity:0}12.5%,23%{opacity:1}}
-.hero-photo.hero-second{animation:heroScene3 48s linear infinite}
-@keyframes heroScene3{0%,23%,37.5%,100%{opacity:0}25%,35.5%{opacity:1}}
-.hero-photo.hero-added-1{animation:heroScene4 48s linear infinite}
-@keyframes heroScene4{0%,35.5%,50%,100%{opacity:0}37.5%,48%{opacity:1}}
-.hero-photo.hero-added-2{animation:heroScene5 48s linear infinite}
-@keyframes heroScene5{0%,48%,62.5%,100%{opacity:0}50%,60.5%{opacity:1}}
-.hero-photo.hero-added-3{animation:heroScene6 48s linear infinite}
-@keyframes heroScene6{0%,60.5%,75%,100%{opacity:0}62.5%,73%{opacity:1}}
-.hero-photo.hero-added-4{animation:heroScene7 48s linear infinite}
-@keyframes heroScene7{0%,73%,87.5%,100%{opacity:0}75%,85.5%{opacity:1}}
-.hero-photo.hero-added-5{animation:heroScene8 48s linear infinite}
-@keyframes heroScene8{0%,85.5%,100%{opacity:0}87.5%,98%{opacity:1}}
-@media(max-width:800px){.hero-mosaic-grid{width:44%;right:4%;gap:8px;top:64%}.hero-mosaic-grid img{border-radius:7px}}
-@media(prefers-reduced-motion:reduce){.hero-photo-slider .hero-photo,.hero-mosaic{animation:none!important;display:none}.hero-photo-slider .hero-first{display:block;opacity:1}}
+/* Portada: fotografías de mayor resolución. */
+.hero-photo.hero-first{animation:heroPhoto1 42s linear infinite}
+@keyframes heroPhoto1{0%,12.2857%,100%{opacity:1}14.2857%,98%{opacity:0}}
+.hero-photo.hero-second{animation:heroPhoto2 42s linear infinite}
+@keyframes heroPhoto2{0%,12.2857%,28.5714%,100%{opacity:0}14.2857%,26.5714%{opacity:1}}
+.hero-photo.hero-added-1{animation:heroPhoto3 42s linear infinite}
+@keyframes heroPhoto3{0%,26.5714%,42.8571%,100%{opacity:0}28.5714%,40.8571%{opacity:1}}
+.hero-photo.hero-added-2{animation:heroPhoto4 42s linear infinite}
+@keyframes heroPhoto4{0%,40.8571%,57.1429%,100%{opacity:0}42.8571%,55.1429%{opacity:1}}
+.hero-photo.hero-added-3{animation:heroPhoto5 42s linear infinite}
+@keyframes heroPhoto5{0%,55.1429%,71.4286%,100%{opacity:0}57.1429%,69.4286%{opacity:1}}
+.hero-photo.hero-added-4{animation:heroPhoto6 42s linear infinite}
+@keyframes heroPhoto6{0%,69.4286%,85.7143%,100%{opacity:0}71.4286%,83.7143%{opacity:1}}
+.hero-photo.hero-added-5{animation:heroPhoto7 42s linear infinite}
+@keyframes heroPhoto7{0%,83.7143%,100%{opacity:0}85.7143%,98%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.hero-photo-slider .hero-photo{animation:none!important;display:none}.hero-photo-slider .hero-first{display:block;opacity:1}}
