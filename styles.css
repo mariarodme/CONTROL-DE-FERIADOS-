@@ -763,3 +763,36 @@ body[data-view="inicio"] .home-urgent{margin-top:24px}
 @media(max-width:620px){.module-choices{grid-template-columns:1fr;gap:12px;margin:20px 16px 0}.module-choice{min-height:155px;padding:18px}.module-choice strong{font-size:1.55rem}body[data-view="inicio"] .home-urgent{margin-top:18px}}
 
 .electricity-fallback{margin:0 0 13px;text-align:right;font-size:12px;color:#405844;text-decoration:underline;text-underline-offset:3px}
+
+/* Búsqueda global e instalación */
+.global-search-trigger{display:inline-flex;align-items:center;gap:7px;flex:none;background:transparent;border:1px solid #c9d0c3;border-radius:22px;color:#435a46;padding:9px 14px;font-size:11px;font-weight:700;white-space:nowrap}
+.global-search-trigger span:first-child{font-size:20px;line-height:14px}
+.global-search-trigger:hover{background:#ecf0e9}
+.menu-install{display:block;width:100%;margin-top:8px;padding:13px 10px;background:#eef2e9;border:1px solid #d1dacb;border-radius:7px;color:#354b36;text-align:left;font-size:12px;font-weight:700;cursor:pointer}
+.menu-install[hidden]{display:none}
+.global-search-dialog{width:min(94vw,690px);max-height:min(80vh,770px);border:1px solid #d7dbd1;border-radius:14px;padding:26px;background:#fbfaf6;color:#2a3b2d;box-shadow:0 22px 70px #19251a50}
+.global-search-dialog::backdrop{background:#0e1b12a8}
+.global-search-head{display:flex;justify-content:space-between;gap:20px;align-items:start}
+.global-search-head h2{font:400 clamp(25px,3vw,34px)/1.1 'Playfair Display',Georgia,serif;margin:5px 0 20px}
+#globalSearchClose{border:0;background:transparent;font-size:32px;line-height:1;color:#415346;padding:0 4px}
+.global-search-dialog label{font-size:12px;font-weight:700;color:#596c5c}
+#globalSearchInput{display:block;width:100%;min-height:48px;border:1px solid #bfcabb;border-radius:8px;background:#fff;padding:11px 14px;margin:8px 0 15px;font-size:16px}
+.global-search-results{overflow-y:auto;max-height:calc(80vh - 210px)}
+.global-search-group{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#8a7655;font-weight:700;margin:17px 0 6px}
+.global-search-result{display:flex;width:100%;justify-content:space-between;align-items:center;gap:15px;background:#fff;border:1px solid #e3e5de;border-radius:8px;padding:12px 13px;margin:7px 0;text-align:left;color:#2c3c30}
+.global-search-result:hover,.global-search-result:focus-visible{border-color:#71876d;background:#f4f7f0}
+.global-search-result strong{display:block;font-size:13px}
+.global-search-result small{display:block;color:#6d776d;font-size:11px;margin-top:4px}
+.global-search-result .arrow{font-size:18px;color:#6d8468}
+.global-search-empty{font-size:13px;color:#647268;padding:22px 0}
+.pwa-callout{display:flex;align-items:center;gap:13px;margin:20px clamp(18px,5vw,80px) 0;padding:14px 17px;border:1px solid #d5dfd1;border-radius:12px;background:#f7f9f3;color:#3b563f}
+.pwa-callout[hidden]{display:none}
+.pwa-callout>span{font-size:25px}
+.pwa-callout p{display:grid;gap:3px;margin:0;flex:1}
+.pwa-callout strong{font-size:13px}.pwa-callout small{font-size:11px;color:#6a7669}
+.pwa-callout button{border:0;border-radius:20px;padding:10px 17px;background:#405844;color:#fff;font-size:11px;font-weight:700}
+.task-row[data-electric-task]{border-left:3px solid #8c9b83}
+.task-row[data-electric-task] small::before{content:"Electricidad · "}
+@media(max-width:950px){.global-search-trigger span:last-child{display:none}.global-search-trigger{padding:9px 11px}}
+@media(max-width:620px){.global-search-trigger{margin-left:auto}.global-search-dialog{padding:20px}.pwa-callout{margin:16px 16px 0}.pwa-callout button{padding:9px 12px}}
+@media(max-width:1450px){.global-search-trigger span:last-child{display:none}.global-search-trigger{padding:9px 10px}}
