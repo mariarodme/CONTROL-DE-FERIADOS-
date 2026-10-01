@@ -882,3 +882,12 @@ input[type=checkbox]{accent-color:#405844;width:17px;height:17px}
   #printSheet .clean-print-document header{position:static}
   #printSheet .clean-print-document{box-shadow:none!important}
 }
+
+/* Portada: foto de octubre y dos vistas anteriores. */
+.hero-photo.hero-october{animation:poolOctober 18s linear infinite}
+.hero-photo.hero-first{animation:poolOriginal 18s linear infinite}
+.hero-photo.hero-second{animation:poolAerial 18s linear infinite}
+@keyframes poolOctober{0%,29%,100%{opacity:1}33.3333%,96%{opacity:0}}
+@keyframes poolOriginal{0%,29%,66.6667%,100%{opacity:0}33.3333%,62.6667%{opacity:1}}
+@keyframes poolAerial{0%,62.6667%,100%{opacity:0}66.6667%,96%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.hero-photo-slider .hero-photo{animation:none!important;display:none!important}.hero-photo-slider .hero-october{display:block!important;opacity:1}}
